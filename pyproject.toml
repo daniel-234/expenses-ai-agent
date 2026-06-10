@@ -1,0 +1,28 @@
+[project]
+name = "expenses-ai-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Daniele", email = "danielerb.dev@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "python-decouple>=3.8",
+    "sqlmodel>=0.0.38",
+]
+
+[project.scripts]
+expenses-ai-agent = "expenses_ai_agent:main"
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "prek>=0.4.4",
+    "pytest>=9.0.3",
+    "ruff>=0.15.16",
+    "ty>=0.0.46",
+]
