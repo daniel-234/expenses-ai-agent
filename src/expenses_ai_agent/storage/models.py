@@ -10,7 +10,7 @@ def _utc_now() -> datetime:
 
 
 class Currency(StrEnum):
-    """Common currency codes for tracking expenses"""
+    """Common currency codes for tracking expenses."""
 
     EUR = ("EUR",)
     USD = ("USD",)
@@ -25,7 +25,7 @@ class Currency(StrEnum):
 
 
 class ExpenseCategory(StrEnum):
-    """A category for classifying expenses"""
+    """A category for classifying expenses."""
 
     FOOD = ("Food",)
     TRANSPORT = ("Transport",)
