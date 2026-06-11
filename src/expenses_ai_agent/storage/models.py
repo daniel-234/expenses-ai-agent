@@ -18,7 +18,18 @@ class Currency(StrEnum):
 
 
 class ExpenseCategory(StrEnum):
-    pass
+    FOOD = ("Food",)
+    TRANSPORT = ("Transport",)
+    ENTERTAINMENT = ("Entertainment",)
+    SHOPPING = ("Shopping",)
+    HEALTH = ("Health",)
+    BILLS = ("Bills",)
+    EDUCATION = ("Education",)
+    TRAVEL = ("Travel",)
+    SERVICES = ("Services",)
+    GIFTS = ("Gifts",)
+    INVESTMENTS = ("Investments",)
+    OTHER = ("Other",)
 
 
 class Expense(SQLModel, table=True):
