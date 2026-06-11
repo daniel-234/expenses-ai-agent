@@ -1,3 +1,4 @@
+from expenses_ai_agent.storage.exceptions import ExpenseNotFoundError
 from expenses_ai_agent.storage.models import Currency, ExpenseCategory
 
 
@@ -72,3 +73,13 @@ class TestExpenseCategoryEnum:
         categories = list(ExpenseCategory)
         assert len(categories) == 12
         assert all(isinstance(c, ExpenseCategory) for c in categories)
+
+
+class TestStorageExceptions:
+    """Tests for custom storage exceptions."""
+
+    def test_expense_not_found_error_exists(self):
+        """ExpenseNotFoundError should be a custom exception."""
+        error = ExpenseNotFoundError(123)
+        assert isinstance(error, Exception)
+        assert "123" in str(error)
