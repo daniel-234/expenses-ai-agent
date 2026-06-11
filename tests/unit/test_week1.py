@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
+from decimal import Decimal
+
 from expenses_ai_agent.storage.exceptions import ExpenseNotFoundError
-from expenses_ai_agent.storage.models import Currency, ExpenseCategory
+from expenses_ai_agent.storage.models import Currency, Expense, ExpenseCategory
 
 
 class TestCurrencyEnum:
@@ -83,3 +86,86 @@ class TestStorageExceptions:
         error = ExpenseNotFoundError(123)
         assert isinstance(error, Exception)
         assert "123" in str(error)
+
+
+class TestExpense:
+    """Tests for the Expense model."""
+
+    def test_expense_has_required_fields(self):
+        """Expense must have all required fields for expense tracking."""
+        expense = Expense(
+            amount=Decimal("42.50"),
+            currency=Currency.EUR,
+            description="Lunch at restaurant",
+        )
+
+        assert hasattr(expense, "id")
+        assert hasattr(expense, "amount")
+        assert hasattr(expense, "currency")
+        assert hasattr(expense, "description")
+        assert hasattr(expense, "date")
+        assert hasattr(expense, "category")
+
+    def test_expense_amount_is_decimal(self):
+        """Amount should use Decimal for financial precision."""
+        expense = Expense(
+            amount=Decimal("19.99"),
+            currency=Currency.USD,
+        )
+
+        assert isinstance(expense.amount, Decimal)
+        assert expense.amount == Decimal("19.99")
+
+    def test_expense_currency_default(self):
+        """Currency should default to EUR if not specified."""
+        expense = Expense(amount=Decimal("10.00"))
+
+        assert expense.currency == Currency.EUR
+
+    def test_expense_date_defaults_to_now(self):
+        """Date should default to current UTC time."""
+        before = datetime.now(timezone.utc)
+        expense = Expense(amount=Decimal("5.00"))
+        after = datetime.now(timezone.utc)
+
+        assert expense.date is not None
+        assert before <= expense.date <= after or (after - before).total_seconds() < 2
+
+    def test_expense_str_representation(self):
+        """Expense __str__ should provide a readable summary."""
+        expense = Expense(
+            amount=Decimal("25.00"),
+            currency=Currency.GBP,
+            description="Book purchase",
+        )
+
+        result = str(expense)
+        assert "25" in result
+        assert "GBP" in result
+
+    def test_expense_create_class_method(self):
+        """Expense.create() should be a convenient factory method."""
+        expense = Expense.create(
+            amount=Decimal("99.99"),
+            currency=Currency.USD,
+            description="New headphones",
+            category=ExpenseCategory.SHOPPING,
+        )
+
+        assert isinstance(expense, Expense)
+        assert expense.amount == Decimal("99.99")
+        assert expense.currency == Currency.USD
+        assert expense.description == "New headphones"
+        assert expense.category == ExpenseCategory.SHOPPING
+
+    def test_expense_optional_telegram_user_id(self):
+        """Expense should support optional telegram_user_id for multiuser."""
+        expense = Expense(
+            amount=Decimal("10.00"),
+            telegram_user_id=12345,
+        )
+
+        assert expense.telegram_user_id == 12345
+
+        expense_no_user = Expense(amount=Decimal("10.00"))
+        assert expense_no_user.telegram_user_id is None
