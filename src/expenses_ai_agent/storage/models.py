@@ -12,33 +12,33 @@ def _utc_now() -> datetime:
 class Currency(StrEnum):
     """Common currency codes for tracking expenses."""
 
-    EUR = ("EUR",)
-    USD = ("USD",)
-    GBP = ("GBP",)
-    JPY = ("JPY",)
-    CHF = ("CHF",)
-    CAD = ("CAD",)
-    AUD = ("AUD",)
-    CNY = ("CNY",)
-    INR = ("INR",)
-    MXN = ("MXN",)
+    EUR = "EUR"
+    USD = "USD"
+    GBP = "GBP"
+    JPY = "JPY"
+    CHF = "CHF"
+    CAD = "CAD"
+    AUD = "AUD"
+    CNY = "CNY"
+    INR = "INR"
+    MXN = "MXN"
 
 
 class ExpenseCategory(StrEnum):
     """A category for classifying expenses."""
 
-    FOOD = ("Food",)
-    TRANSPORT = ("Transport",)
-    ENTERTAINMENT = ("Entertainment",)
-    SHOPPING = ("Shopping",)
-    HEALTH = ("Health",)
-    BILLS = ("Bills",)
-    EDUCATION = ("Education",)
-    TRAVEL = ("Travel",)
-    SERVICES = ("Services",)
-    GIFTS = ("Gifts",)
-    INVESTMENTS = ("Investments",)
-    OTHER = ("Other",)
+    FOOD = "Food"
+    TRANSPORT = "Transport"
+    ENTERTAINMENT = "Entertainment"
+    SHOPPING = "Shopping"
+    HEALTH = "Health"
+    BILLS = "Bills"
+    EDUCATION = "Education"
+    TRAVEL = "Travel"
+    SERVICES = "Services"
+    GIFTS = "Gifts"
+    INVESTMENTS = "Investments"
+    OTHER = "Other"
 
 
 class Expense(SQLModel, table=True):
