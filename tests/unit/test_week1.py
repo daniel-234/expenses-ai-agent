@@ -188,3 +188,100 @@ class TestRepositoryAbstractBase:
     def test_inmemory_repo_inherits_from_abstract(self):
         """In-memory repository should implement the abstract base class."""
         assert issubclass(InMemoryExpenseRepository, ExpenseRepository)
+
+
+class TestInMemoryExpenseRepository:
+    """Tests for the in-memory expense repository."""
+
+    @pytest.fixture
+    def repo(self):
+        return InMemoryExpenseRepository()
+
+    @pytest.fixture
+    def sample_expense(self):
+        return Expense(
+            amount=Decimal("42.50"),
+            currency=Currency.EUR,
+            description="Test expense",
+        )
+
+    def test_add_expense_assigns_id(self, repo, sample_expense):
+        """Adding an expense should assign an auto-incremented ID."""
+        assert sample_expense.id is None
+
+        repo.add(sample_expense)
+
+        assert sample_expense.id is not None
+        assert sample_expense.id >= 1
+
+    def test_get_expense_by_id(self, repo, sample_expense):
+        """Should retrieve expense by ID."""
+        repo.add(sample_expense)
+
+        result = repo.get(sample_expense.id)
+
+        assert result is not None
+        assert result.amount == Decimal("42.50")
+
+    def test_get_nonexistent_returns_none(self, repo):
+        """Getting a non-existent expense should return None."""
+        result = repo.get(999)
+        assert result is None
+
+    def test_list_all_expenses(self, repo):
+        """Should list all expenses."""
+        repo.add(Expense(amount=Decimal("10.00"), currency=Currency.EUR))
+        repo.add(Expense(amount=Decimal("20.00"), currency=Currency.USD))
+
+        expenses = repo.get_all()
+
+        assert len(expenses) == 2
+        assert all(isinstance(e, Expense) for e in expenses)
+
+    def test_list_all_zero_expenses(self, repo):
+        """Listing expenses on an empty repository should return an empty list."""
+        expenses = repo.get_all()
+        assert expenses == []
+
+    def test_delete_expense(self, repo, sample_expense):
+        """Should be able to delete an expense."""
+        repo.add(sample_expense)
+        expense_id = sample_expense.id
+
+        repo.delete(expense_id)
+
+        assert repo.get(expense_id) is None
+
+    def test_delete_nonexistent_raises(self, repo):
+        """Deleting a non-existent expense should raise ExpenseNotFoundError."""
+        with pytest.raises(ExpenseNotFoundError):
+            repo.delete(999)
+
+    def test_search_by_category(self, repo):
+        """Should be able to search expenses by category."""
+        repo.add(
+            Expense(
+                amount=Decimal("10.00"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.FOOD,
+            )
+        )
+        repo.add(
+            Expense(
+                amount=Decimal("20.00"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.FOOD,
+            )
+        )
+        repo.add(
+            Expense(
+                amount=Decimal("30.00"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.TRANSPORT,
+            )
+        )
+
+        food_expenses = repo.search_by_category(ExpenseCategory.FOOD)
+
+        assert len(food_expenses) == 2
+        assert all(e.category == ExpenseCategory.FOOD for e in food_expenses)
