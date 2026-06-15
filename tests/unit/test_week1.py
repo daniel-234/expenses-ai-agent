@@ -133,7 +133,7 @@ class TestExpense:
         after = datetime.now(timezone.utc)
 
         assert expense.date is not None
-        assert before <= expense.date <= after or (after - before).total_seconds() < 2
+        assert before <= expense.date <= after
 
     def test_expense_str_representation(self):
         """Expense __str__ should provide a readable summary."""
