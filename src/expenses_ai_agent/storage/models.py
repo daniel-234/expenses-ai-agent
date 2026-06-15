@@ -46,9 +46,9 @@ class Expense(SQLModel, table=True):
     amount: Decimal
     currency: Currency = Currency.EUR
     date: datetime = Field(default_factory=_utc_now)
-    description: str | None
-    category: ExpenseCategory | None
-    telegram_user_id: int | None
+    description: str | None = None
+    category: ExpenseCategory | None = None
+    telegram_user_id: int | None = None
 
     @classmethod
     def create(cls, **kwargs):
