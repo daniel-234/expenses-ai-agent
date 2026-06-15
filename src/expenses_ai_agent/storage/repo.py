@@ -8,7 +8,7 @@ class ExpenseRepository(ABC):
     """Abstract interface for expense data access."""
 
     @abstractmethod
-    def add(self, expense: Expense) -> None:
+    def add(self, expense: Expense) -> Expense:
         """Add an expense to the repository."""
         ...
 
@@ -40,10 +40,11 @@ class InMemoryExpenseRepository(ExpenseRepository):
         self._expenses: dict[int, Expense] = {}
         self._counter = 1
 
-    def add(self, expense: Expense) -> None:
+    def add(self, expense: Expense) -> Expense:
         expense.id = self._counter
         self._expenses[self._counter] = expense
         self._counter += 1
+        return expense
 
     def get(self, id: int) -> Expense | None:
         return self._expenses.get(id)
