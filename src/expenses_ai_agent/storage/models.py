@@ -5,10 +5,6 @@ from enum import StrEnum
 from sqlmodel import Field, SQLModel
 
 
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 class Currency(StrEnum):
     """Common currency codes for tracking expenses."""
 
@@ -45,14 +41,14 @@ class Expense(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     amount: Decimal
     currency: Currency = Currency.EUR
-    date: datetime = Field(default_factory=_utc_now)
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     description: str | None = None
     category: ExpenseCategory | None = None
-    telegram_user_id: int | None = None
+    telegram_user_id: int | None = Field(default=None, index=True)
 
     @classmethod
     def create(cls, **kwargs):
         return cls(**kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.description} for {self.amount} {self.currency} in {self.date}"
