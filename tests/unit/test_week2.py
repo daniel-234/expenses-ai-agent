@@ -11,6 +11,7 @@ from expenses_ai_agent.llms.base import COST, MESSAGES, Assistant, LLMProvider
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.storage.models import Currency
 from expenses_ai_agent.utils.currency import convert_currency
+from expenses_ai_agent.utils.date_formatter import format_datetime
 
 
 class TestExpenseCategorizationResponse:
@@ -200,3 +201,34 @@ class TestCurrencyConversion:
             result = convert_currency(Decimal("100"), "EUR", "USD")
 
             assert result == Decimal("150")
+
+
+class TestDateFormatter:
+    """Tests for the date formatting utility."""
+
+    def test_format_datetime_function_exists(self):
+        """format_datetime function should exist."""
+        assert callable(format_datetime)
+
+    def test_format_datetime_returns_string(self):
+        """Date formatting should return a string."""
+        result = format_datetime("2024-06-15T14:30:00+00:00")
+
+        assert isinstance(result, str)
+
+    def test_format_datetime_includes_date_components(self):
+        """Formatted datetime should include readable date components."""
+        result = format_datetime("2024-06-15T14:30:00+00:00")
+
+        assert "2024" in result or "24" in result
+        assert "Jun" in result or "06" in result or "6" in result
+
+    def test_format_datetime_with_timezone(self):
+        """Should support timezone conversion."""
+        result = format_datetime(
+            "2024-06-15T12:00:00+00:00", timezone_str="Europe/Madrid"
+        )
+
+        assert isinstance(result, str)
+        assert "12:00" not in result
+        assert "02:00" in result
