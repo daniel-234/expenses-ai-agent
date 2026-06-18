@@ -10,6 +10,10 @@ from pydantic import BaseModel
 from expenses_ai_agent.llms.base import COST, MESSAGES, Assistant, LLMProvider
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.storage.models import Currency
+from expenses_ai_agent.tools.tools import (
+    CURRENCY_CONVERSION_TOOL,
+    DATETIME_FORMATTER_TOOL,
+)
 from expenses_ai_agent.utils.currency import convert_currency
 from expenses_ai_agent.utils.date_formatter import format_datetime
 
@@ -232,3 +236,35 @@ class TestDateFormatter:
         assert isinstance(result, str)
         assert "12:00" not in result
         assert "02:00" in result
+
+
+class TestToolSchemas:
+    """Tests for OpenAI-compatible tool schemas."""
+
+    def test_currency_tool_schema_exists(self):
+        """Currency conversion tool schema should be defined."""
+        assert isinstance(CURRENCY_CONVERSION_TOOL, dict)
+
+    def test_currency_tool_has_function_type(self):
+        """Tool schema should have type: function."""
+        assert CURRENCY_CONVERSION_TOOL.get("type") == "function"
+
+    def test_currency_tool_has_required_structure(self):
+        """Tool schema should follow OpenAI function calling format."""
+        assert "function" in CURRENCY_CONVERSION_TOOL
+        func = CURRENCY_CONVERSION_TOOL["function"]
+
+        assert "name" in func
+        assert "description" in func
+        assert "parameters" in func
+
+        params = func[
+            "parameters"
+        ]  # ty: ignore[invalid-argument-type] - temporary, pending TypedDict decision
+        assert "type" in params
+        assert "properties" in params
+
+    def test_datetime_tool_schema_exists(self):
+        """Datetime formatter tool schema should be defined."""
+        assert isinstance(DATETIME_FORMATTER_TOOL, dict)
+        assert DATETIME_FORMATTER_TOOL.get("type") == "function"
