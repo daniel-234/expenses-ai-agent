@@ -3,12 +3,14 @@ from datetime import datetime  # timezone used here; both dropped in Step 4
 from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
+from unittest.mock import MagicMock, patch
 
 from pydantic import BaseModel
 
 from expenses_ai_agent.llms.base import COST, MESSAGES, Assistant, LLMProvider
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.storage.models import Currency
+from expenses_ai_agent.utils.currency import convert_currency
 
 
 class TestExpenseCategorizationResponse:
@@ -148,3 +150,53 @@ class TestTypeAliases:
             "completion": [Decimal("0.003")],
         }
         assert "prompt" in sample_cost
+
+
+class TestCurrencyConversion:
+    """Tests for the currency conversion utility."""
+
+    def test_convert_currency_function_exists(self):
+        """convert_currency function should exist."""
+        assert callable(convert_currency)
+
+    def test_convert_currency_returns_decimal(self):
+        """Currency conversion should return a Decimal value."""
+        with (
+            patch("expenses_ai_agent.utils.currency.EXCHANGE_RATE_API_KEY", "test-key"),
+            patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
+        ):
+            mock_response = MagicMock()
+            mock_response.json.return_value = {
+                "result": "success",
+                "conversion_rate": 1.1,
+            }
+            mock_response.raise_for_status = MagicMock()
+            mock_get.return_value = mock_response
+
+            result = convert_currency(Decimal("100"), "EUR", "USD")
+
+            assert isinstance(result, Decimal)
+
+    def test_convert_currency_same_currency(self):
+        """Converting to the same currency should return the original amount."""
+        result = convert_currency(Decimal("50.00"), "EUR", "EUR")
+
+        assert result == Decimal("50.00")
+
+    def test_convert_currency_applies_rate(self):
+        """Conversion should apply the exchange rate correctly."""
+        with (
+            patch("expenses_ai_agent.utils.currency.EXCHANGE_RATE_API_KEY", "test-key"),
+            patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
+        ):
+            mock_response = MagicMock()
+            mock_response.json.return_value = {
+                "result": "success",
+                "conversion_rate": 1.5,
+            }
+            mock_response.raise_for_status = MagicMock()
+            mock_get.return_value = mock_response
+
+            result = convert_currency(Decimal("100"), "EUR", "USD")
+
+            assert result == Decimal("150")
