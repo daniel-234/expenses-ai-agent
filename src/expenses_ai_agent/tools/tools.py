@@ -1,4 +1,6 @@
-CURRENCY_CONVERSION_TOOL = {
+from openai.types.chat import ChatCompletionToolParam
+
+CURRENCY_CONVERSION_TOOL: ChatCompletionToolParam = {
     "type": "function",
     "function": {
         "name": "convert_currency",
@@ -25,7 +27,7 @@ CURRENCY_CONVERSION_TOOL = {
 }
 
 
-DATETIME_FORMATTER_TOOL = {
+DATETIME_FORMATTER_TOOL: ChatCompletionToolParam = {
     "type": "function",
     "function": {
         "name": "format_datetime",

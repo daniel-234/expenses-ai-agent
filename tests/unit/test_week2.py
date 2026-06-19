@@ -259,9 +259,7 @@ class TestToolSchemas:
         assert "description" in func
         assert "parameters" in func
 
-        params = func[
-            "parameters"
-        ]  # ty: ignore[invalid-argument-type] - temporary, pending TypedDict decision
+        params = func["parameters"]
         assert "type" in params
         assert "properties" in params
 
