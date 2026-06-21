@@ -8,6 +8,8 @@ from .base import MESSAGES
 from .output import ExpenseCategorizationResponse
 
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+INPUT_COST = Decimal("0.15") / 1000000
+OUTPUT_COST = Decimal("0.60") / 1000000
 
 
 class OpenAIAssistant:
@@ -41,10 +43,11 @@ class OpenAIAssistant:
         return result
 
     def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> Decimal:
-        """Calculate cost based on token counts"""
-        return (
-            prompt_tokens * Decimal("0.15") + completion_tokens * Decimal("0.60")
-        ) / 1000000
+        """Calculate cost based on token counts.
+        The rates used here are the OpenAI rates for gpt-4o-mini.
+        The cost is only accurate for the default model."""
+
+        return prompt_tokens * INPUT_COST + completion_tokens * OUTPUT_COST
 
     def get_available_models(self) -> list[str]:
         """Return a list of the IDs of all available models"""
