@@ -7,13 +7,19 @@ from openai import OpenAI
 from .base import MESSAGES
 from .output import ExpenseCategorizationResponse
 
-OPENAI_API_KEY = config("OPENAI_API_KEY")
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 
 
 class OpenAIAssistant:
     def __init__(self, model: str = "gpt-4o-mini", api_key: str | None = None):
         self.model = model
-        self.api_key = OPENAI_API_KEY if api_key is None else api_key
+        if api_key:
+            self.api_key = api_key
+        elif OPENAI_API_KEY:
+            self.api_key = OPENAI_API_KEY
+        else:
+            raise ValueError("OPENAI_API_KEY is not set")
+
         self.client = OpenAI(api_key=self.api_key)
 
     def completion(self, messages: MESSAGES) -> ExpenseCategorizationResponse:
