@@ -1,15 +1,20 @@
 from decimal import Decimal
-from typing import Any, cast
+from typing import cast
 
 from decouple import config
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from .base import MESSAGES
 from .output import ExpenseCategorizationResponse
 
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
-INPUT_COST = Decimal("0.15") / 1000000
-OUTPUT_COST = Decimal("0.60") / 1000000
+INPUT_COST = Decimal("0.15") / 1_000_000
+OUTPUT_COST = Decimal("0.60") / 1_000_000
+
+
+class EmptyResponseError(Exception):
+    pass
 
 
 class OpenAIAssistant:
@@ -28,14 +33,14 @@ class OpenAIAssistant:
         """Categorize the given expense"""
         response = self.client.beta.chat.completions.parse(
             model=self.model,
-            messages=cast(Any, messages),
+            messages=cast(list[ChatCompletionMessageParam], messages),
             response_format=ExpenseCategorizationResponse,
         )
         result = response.choices[0].message.parsed
         if result is None:
-            raise ValueError("Failed to parse response from OpenAI")
+            raise EmptyResponseError("Failed to parse response from OpenAI")
 
-        if response.usage:
+        if response.usage is not None:
             result.cost = self.calculate_cost(
                 response.usage.prompt_tokens, response.usage.completion_tokens
             )

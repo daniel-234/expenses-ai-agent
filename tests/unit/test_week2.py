@@ -9,7 +9,7 @@ import pytest
 from pydantic import BaseModel
 
 from expenses_ai_agent.llms.base import COST, MESSAGES, Assistant, LLMProvider
-from expenses_ai_agent.llms.openai import OpenAIAssistant
+from expenses_ai_agent.llms.openai import EmptyResponseError, OpenAIAssistant
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.storage.models import Currency
 from expenses_ai_agent.tools.tools import (
@@ -359,7 +359,7 @@ class TestOpenAIAssistant:
 
             assistant = OpenAIAssistant(model="gpt-4o-mini", api_key="test-key")
             messages = [{"role": "user", "content": ""}]
-            with pytest.raises(ValueError, match="Failed to parse"):
+            with pytest.raises(EmptyResponseError, match="Failed to parse"):
                 assistant.completion(messages)
 
     def test_failed_api_call(self):
