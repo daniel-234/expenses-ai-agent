@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Protocol
 from unittest.mock import MagicMock, patch
 
+import pytest
 from pydantic import BaseModel
 
 from expenses_ai_agent.llms.base import COST, MESSAGES, Assistant, LLMProvider
@@ -288,6 +289,8 @@ class TestOpenAIAssistant:
             assistant = OpenAIAssistant(model="gpt-4o-mini", api_key="test-key")
             cost = assistant.calculate_cost(100, 50)
             assert isinstance(cost, Decimal)
+            # 100 * 0.15/1M (input) + 50 * 0.60/1M (output) = 0.000045
+            assert cost == Decimal("0.000045")
 
     def test_completion_calls_openai_and_returns_response(self):
         """completion should call the OpenAI API and return ExpenseCategorizationResponse."""
@@ -317,3 +320,56 @@ class TestOpenAIAssistant:
 
             assert isinstance(result, ExpenseCategorizationResponse)
             mock_client.beta.chat.completions.parse.assert_called_once()
+
+    def test_get_available_models(self):
+        with patch("expenses_ai_agent.llms.openai.OpenAI") as mock_openai_cls:
+            mock_client = MagicMock()
+            mock_openai_cls.return_value = mock_client
+
+            mock_response = MagicMock()
+            mock_response.data = [
+                MagicMock(id="gpt-5.4-mini"),
+                MagicMock(id="gpt-4o"),
+                MagicMock(id="gpt-4o-mini"),
+            ]
+            mock_client.models.list.return_value = mock_response
+
+            assistant = OpenAIAssistant(model="gpt-4o-mini", api_key="test_key")
+            available_models = assistant.get_available_models()
+
+            assert available_models == ["gpt-5.4-mini", "gpt-4o", "gpt-4o-mini"]
+            mock_client.models.list.assert_called_once()
+
+    def test_missing_key(self):
+        with (
+            patch("expenses_ai_agent.llms.openai.OPENAI_API_KEY", ""),
+            pytest.raises(ValueError, match="not set"),
+        ):
+            OpenAIAssistant(model="gpt-4o-mini", api_key="")
+
+    def test_failed_to_parse(self):
+        with patch("expenses_ai_agent.llms.openai.OpenAI") as mock_openai_cls:
+            mock_client = MagicMock()
+            mock_openai_cls.return_value = mock_client
+
+            mock_parsed = None
+            mock_response = MagicMock()
+            mock_response.choices[0].message.parsed = mock_parsed
+            mock_client.beta.chat.completions.parse.return_value = mock_response
+
+            assistant = OpenAIAssistant(model="gpt-4o-mini", api_key="test-key")
+            messages = [{"role": "user", "content": ""}]
+            with pytest.raises(ValueError, match="Failed to parse"):
+                assistant.completion(messages)
+
+    def test_failed_api_call(self):
+        with patch("expenses_ai_agent.llms.openai.OpenAI") as mock_openai_cls:
+            mock_client = MagicMock()
+            mock_openai_cls.return_value = mock_client
+
+            mock_client.beta.chat.completions.parse.side_effect = RuntimeError()
+
+            assistant = OpenAIAssistant(model="gpt-4o-mini", api_key="test-key")
+            messages = [{"role": "user", "content": ""}]
+            with pytest.raises(RuntimeError):
+                assistant.completion(messages)
