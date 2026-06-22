@@ -20,7 +20,8 @@ def convert_currency(amount: Decimal, from_currency: str, to_currency: str) -> D
             api=EXCHANGE_RATE_API_KEY,
             from_currency=from_currency,
             to_currency=to_currency,
-        )
+        ),
+        timeout=10,
     )
     response.raise_for_status()
     data = response.json()
