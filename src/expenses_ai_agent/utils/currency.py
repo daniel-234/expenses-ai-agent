@@ -9,10 +9,13 @@ API_PAIR_URL = (
 )
 
 
-def convert_currency(amount: Decimal, from_currency: str, to_currency: str) -> Decimal:
+def convert_currency(
+    amount: Decimal | float, from_currency: str, to_currency: str
+) -> Decimal:
     """Return the amount 'from_currency' converted to 'to_currency' as Decimal value"""
+    decimal_amount = Decimal(str(amount))
     if from_currency == to_currency:
-        return amount
+        return decimal_amount
     if not EXCHANGE_RATE_API_KEY:
         raise ValueError("EXCHANGE_RATE_API_KEY is not set")
     response = requests.get(
@@ -25,4 +28,4 @@ def convert_currency(amount: Decimal, from_currency: str, to_currency: str) -> D
     )
     response.raise_for_status()
     data = response.json()
-    return Decimal(str(data["conversion_rate"])) * amount
+    return Decimal(str(data["conversion_rate"])) * decimal_amount
