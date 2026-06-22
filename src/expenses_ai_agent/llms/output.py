@@ -9,12 +9,12 @@ from expenses_ai_agent.storage.models import Currency
 class ExpenseCategorizationResponse(BaseModel):
     category: str
     total_amount: Decimal = Field(
-        description="Numeric amount extracted from the expense description"
+        gt=0, description="Numeric amount extracted from the expense description"
     )
     currency: Currency = Field(
         description="Currency code from the description, default EUR"
     )
-    confidence: float = Field(description="Confidence score 0.0-1.0")
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence score 0.0-1.0")
     cost: Decimal = Field(
         default=Decimal("0"),
         description="Leave as 0 — set programmatically after the API call",
