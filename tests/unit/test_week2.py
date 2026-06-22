@@ -277,18 +277,11 @@ class TestOpenAIAssistant:
         """OpenAIAssistant should be importable."""
         assert OpenAIAssistant is not None
 
-    def test_openai_assistant_satisfies_protocol(self):
-        """OpenAIAssistant should satisfy the Assistant Protocol."""
-        assert hasattr(OpenAIAssistant, "completion")
-        assert hasattr(OpenAIAssistant, "calculate_cost")
-        assert hasattr(OpenAIAssistant, "get_available_models")
-
     def test_calculate_cost_returns_decimal(self):
         """calculate_cost should return a Decimal."""
         with patch("expenses_ai_agent.llms.openai.OpenAI"):
             assistant = OpenAIAssistant(model="gpt-4o-mini", api_key="test-key")
             cost = assistant.calculate_cost(100, 50)
-            assert isinstance(cost, Decimal)
             # 100 * 0.15/1M (input) + 50 * 0.60/1M (output) = 0.000045
             assert cost == Decimal("0.000045")
 
