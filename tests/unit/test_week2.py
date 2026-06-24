@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import BaseModel
 
-from expenses_ai_agent.llms.base import COST, MESSAGES, Assistant, LLMProvider
+from expenses_ai_agent.llms.base import Assistant, Cost, LLMProvider, Messages
 from expenses_ai_agent.llms.openai import EmptyResponseError, OpenAIAssistant
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.storage.models import Currency
@@ -143,16 +143,16 @@ class TestTypeAliases:
     """Tests for type alias definitions."""
 
     def test_messages_type_alias_exists(self):
-        """MESSAGES type alias should be defined."""
-        sample_messages: MESSAGES = [
+        """Messages type alias should be defined."""
+        sample_messages: Messages = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Hello!"},
         ]
         assert len(sample_messages) == 2
 
     def test_cost_type_alias_exists(self):
-        """COST type alias should be defined."""
-        sample_cost: COST = {
+        """Cost type alias should be defined."""
+        sample_cost: Cost = {
             "prompt": [Decimal("0.001"), Decimal("0.002")],
             "completion": [Decimal("0.003")],
         }

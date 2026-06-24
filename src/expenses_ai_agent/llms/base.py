@@ -4,8 +4,8 @@ from typing import Protocol, Sequence
 
 from .output import ExpenseCategorizationResponse
 
-MESSAGES = list[dict[str, str]]
-COST = dict[str, list[Decimal]]
+Messages = list[dict[str, str]]
+Cost = dict[str, list[Decimal]]
 
 
 class LLMProvider(StrEnum):
@@ -18,7 +18,7 @@ class LLMProvider(StrEnum):
 class Assistant(Protocol):
     """Interface for an Assistant type"""
 
-    def completion(self, messages: MESSAGES) -> ExpenseCategorizationResponse: ...
+    def completion(self, messages: Messages) -> ExpenseCategorizationResponse: ...
 
     def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> Decimal: ...
 

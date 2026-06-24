@@ -5,7 +5,7 @@ from decouple import config
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
-from .base import MESSAGES
+from .base import Messages
 from .output import ExpenseCategorizationResponse
 
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
@@ -29,7 +29,7 @@ class OpenAIAssistant:
 
         self.client = OpenAI(api_key=self.api_key)
 
-    def completion(self, messages: MESSAGES) -> ExpenseCategorizationResponse:
+    def completion(self, messages: Messages) -> ExpenseCategorizationResponse:
         """Categorize the given expense"""
         response = self.client.beta.chat.completions.parse(
             model=self.model,
