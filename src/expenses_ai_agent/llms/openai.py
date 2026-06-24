@@ -1,14 +1,13 @@
 from decimal import Decimal
 from typing import cast
 
-from decouple import config
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
+from ..settings import Settings
 from .base import Messages
 from .output import ExpenseCategorizationResponse
 
-OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 INPUT_COST = Decimal("0.15") / 1_000_000
 OUTPUT_COST = Decimal("0.60") / 1_000_000
 
@@ -22,10 +21,9 @@ class OpenAIAssistant:
         self.model = model
         if api_key:
             self.api_key = api_key
-        elif OPENAI_API_KEY:
-            self.api_key = OPENAI_API_KEY
         else:
-            raise ValueError("OPENAI_API_KEY is not set")
+            settings = Settings.model_validate({})
+            self.api_key = settings.openai_api_key
 
         self.client = OpenAI(api_key=self.api_key)
 

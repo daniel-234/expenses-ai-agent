@@ -6,7 +6,7 @@ from typing import Protocol
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from expenses_ai_agent.llms.base import Assistant, Cost, LLMProvider, Messages
 from expenses_ai_agent.llms.openai import EmptyResponseError, OpenAIAssistant
@@ -333,11 +333,11 @@ class TestOpenAIAssistant:
             assert available_models == ["gpt-5.4-mini", "gpt-4o", "gpt-4o-mini"]
             mock_client.models.list.assert_called_once()
 
-    def test_missing_key(self):
-        with (
-            patch("expenses_ai_agent.llms.openai.OPENAI_API_KEY", ""),
-            pytest.raises(ValueError, match="not set"),
-        ):
+    def test_missing_key(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("EXCHANGE_RATE_API_KEY", raising=False)
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(ValidationError, match="openai_api_key"):
             OpenAIAssistant(model="gpt-4o-mini", api_key="")
 
     def test_failed_to_parse(self):
