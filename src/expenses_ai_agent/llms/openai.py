@@ -10,15 +10,24 @@ from .output import ExpenseCategorizationResponse
 
 INPUT_COST = Decimal("0.15") / 1_000_000
 OUTPUT_COST = Decimal("0.60") / 1_000_000
+DEFAULT_MODEL = "gpt-4o-mini"
 
 
 class EmptyResponseError(Exception):
     pass
 
 
+class UnknownModelPriceError(Exception):
+    pass
+
+
 class OpenAIAssistant:
-    def __init__(self, model: str = "gpt-4o-mini", api_key: str | None = None):
+    def __init__(self, model: str = DEFAULT_MODEL, api_key: str | None = None):
         self.model = model
+        if self.model != DEFAULT_MODEL:
+            raise UnknownModelPriceError(
+                f"Pricing only supported for {DEFAULT_MODEL}, got {self.model}"
+            )
         if api_key:
             self.api_key = api_key
         else:

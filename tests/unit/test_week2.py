@@ -9,7 +9,11 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from expenses_ai_agent.llms.base import Assistant, Cost, LLMProvider, Messages
-from expenses_ai_agent.llms.openai import EmptyResponseError, OpenAIAssistant
+from expenses_ai_agent.llms.openai import (
+    EmptyResponseError,
+    OpenAIAssistant,
+    UnknownModelPriceError,
+)
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.storage.models import Currency
 from expenses_ai_agent.tools.tools import (
@@ -345,6 +349,10 @@ class TestOpenAIAssistant:
 
             assert available_models == ["gpt-5.4-mini", "gpt-4o", "gpt-4o-mini"]
             mock_client.models.list.assert_called_once()
+
+    def test_unknown_model_raises(self):
+        with pytest.raises(UnknownModelPriceError, match="Pricing only supported"):
+            OpenAIAssistant(model="gpt-4o", api_key="test-key")
 
     def test_missing_key(self, monkeypatch, tmp_path):
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
