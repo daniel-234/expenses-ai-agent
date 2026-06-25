@@ -3,11 +3,11 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from expenses_ai_agent.storage.models import Currency
+from expenses_ai_agent.storage.models import Currency, ExpenseCategory
 
 
 class ExpenseCategorizationResponse(BaseModel):
-    category: str
+    category: ExpenseCategory
     total_amount: Decimal = Field(
         gt=0, description="Numeric amount extracted from the expense description"
     )
