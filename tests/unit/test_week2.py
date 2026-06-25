@@ -166,10 +166,12 @@ class TestCurrencyConversion:
         """convert_currency function should exist."""
         assert callable(convert_currency)
 
-    def test_convert_currency_returns_decimal(self):
+    def test_convert_currency_returns_decimal(self, monkeypatch, tmp_path):
         """Currency conversion should return a Decimal value."""
+        monkeypatch.setenv("EXCHANGE_RATE_API_KEY", "test-key")
+        monkeypatch.setenv("OPENAI_API_KEY", "...")
+        monkeypatch.chdir(tmp_path)
         with (
-            patch("expenses_ai_agent.utils.currency.EXCHANGE_RATE_API_KEY", "test-key"),
             patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
         ):
             mock_response = MagicMock()
@@ -190,10 +192,12 @@ class TestCurrencyConversion:
 
         assert result == Decimal("50.00")
 
-    def test_convert_currency_applies_rate(self):
+    def test_convert_currency_applies_rate(self, monkeypatch, tmp_path):
         """Conversion should apply the exchange rate correctly."""
+        monkeypatch.setenv("EXCHANGE_RATE_API_KEY", "test-key")
+        monkeypatch.setenv("OPENAI_API_KEY", "...")
+        monkeypatch.chdir(tmp_path)
         with (
-            patch("expenses_ai_agent.utils.currency.EXCHANGE_RATE_API_KEY", "test-key"),
             patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
         ):
             mock_response = MagicMock()
@@ -207,6 +211,15 @@ class TestCurrencyConversion:
             result = convert_currency(Decimal("100"), "EUR", "USD")
 
             assert result == Decimal("150")
+
+    def test_currency_missing_key(self, monkeypatch, tmp_path):
+        """Test Exchange Rate API key is not set"""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("EXCHANGE_RATE_API_KEY", raising=False)
+        monkeypatch.chdir(tmp_path)
+
+        with pytest.raises(ValidationError, match="exchange_rate_api_key"):
+            convert_currency(Decimal("100"), "EUR", "USD")
 
 
 class TestDateFormatter:

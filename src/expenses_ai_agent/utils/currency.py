@@ -1,9 +1,9 @@
 from decimal import Decimal
 
 import requests
-from decouple import config
 
-EXCHANGE_RATE_API_KEY = config("EXCHANGE_RATE_API_KEY", default="")
+from ..settings import Settings
+
 API_PAIR_URL = (
     "https://v6.exchangerate-api.com/v6/{api}/pair/{from_currency}/{to_currency}"
 )
@@ -16,11 +16,10 @@ def convert_currency(
     decimal_amount = Decimal(str(amount))
     if from_currency == to_currency:
         return decimal_amount
-    if not EXCHANGE_RATE_API_KEY:
-        raise ValueError("EXCHANGE_RATE_API_KEY is not set")
+    settings = Settings.model_validate({})
     response = requests.get(
         API_PAIR_URL.format(
-            api=EXCHANGE_RATE_API_KEY,
+            api=settings.exchange_rate_api_key,
             from_currency=from_currency,
             to_currency=to_currency,
         ),
