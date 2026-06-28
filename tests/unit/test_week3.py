@@ -1,5 +1,19 @@
+from decimal import Decimal
+from unittest.mock import create_autospec
+
+import pytest
+
+from expenses_ai_agent.llms.base import Assistant
+from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
 from expenses_ai_agent.prompts.system import CLASSIFICATION_PROMPT
 from expenses_ai_agent.prompts.user import USER_PROMPT
+from expenses_ai_agent.services.classification import (
+    ClassificationResult,
+    ClassificationService,
+    MissingRepositoryError,
+)
+from expenses_ai_agent.storage.models import Currency, ExpenseCategory
+from expenses_ai_agent.storage.repo import ExpenseRepository
 
 
 class TestClassificationPrompt:
@@ -54,3 +68,137 @@ class TestUserPrompt:
             assert "Coffee" in formatted or "5.50" in formatted
         except KeyError as e:
             assert "expense" in str(e).lower()
+
+
+class TestClassificationResult:
+    """Tests for ClassificationResult dataclass."""
+
+    def test_classification_result_has_response(self):
+        """ClassificationResult should contain the LLM response."""
+        response = ExpenseCategorizationResponse(
+            category=ExpenseCategory.FOOD,
+            total_amount=Decimal("10.00"),
+            currency=Currency.EUR,
+            confidence=0.9,
+            cost=Decimal("0.001"),
+        )
+
+        result = ClassificationResult(response=response, persisted=False)
+
+        assert result.response == response
+        assert result.persisted is False
+
+    def test_classification_result_tracks_persistence(self):
+        """ClassificationResult should track persistence status."""
+        response = ExpenseCategorizationResponse(
+            category=ExpenseCategory.TRANSPORT,
+            total_amount=Decimal("25.00"),
+            currency=Currency.USD,
+            confidence=0.85,
+            cost=Decimal("0.002"),
+        )
+
+        result_persisted = ClassificationResult(response=response, persisted=True)
+        result_not = ClassificationResult(response=response, persisted=False)
+
+        assert result_persisted.persisted is True
+        assert result_not.persisted is False
+
+
+class TestClassificationService:
+    """Tests for ClassificationService."""
+
+    @pytest.fixture
+    def mock_assistant(self):
+        assistant = create_autospec(Assistant)
+        assistant.completion.return_value = ExpenseCategorizationResponse(
+            category=ExpenseCategory.FOOD,
+            total_amount=Decimal("5.50"),
+            currency=Currency.USD,
+            confidence=0.95,
+            cost=Decimal("0.001"),
+        )
+        return assistant
+
+    @pytest.fixture
+    def mock_expense_repo(self):
+        return create_autospec(ExpenseRepository)
+
+    def test_service_initialization(self, mock_assistant):
+        service = ClassificationService(assistant=mock_assistant)
+        assert service.assistant == mock_assistant
+
+    def test_classify_calls_assistant(self, mock_assistant):
+        service = ClassificationService(assistant=mock_assistant)
+        result = service.classify("Coffee at Starbucks $5.50")
+
+        mock_assistant.completion.assert_called_once()
+        assert result.response.category == "Food"
+
+    def test_classify_without_persistence(self, mock_assistant):
+        service = ClassificationService(assistant=mock_assistant)
+        result = service.classify("Test expense", persist=False)
+
+        assert result.persisted is False
+
+    def test_classify_with_persistence(self, mock_assistant, mock_expense_repo):
+        service = ClassificationService(
+            assistant=mock_assistant,
+            expense_repo=mock_expense_repo,
+        )
+
+        result = service.classify("Coffee $5.50", persist=True)
+
+        assert result.persisted is True
+        mock_expense_repo.add.assert_called_once()
+
+    def test_persist_with_category_override(self, mock_assistant, mock_expense_repo):
+        service = ClassificationService(
+            assistant=mock_assistant,
+            expense_repo=mock_expense_repo,
+        )
+
+        response = ExpenseCategorizationResponse(
+            category=ExpenseCategory.FOOD,
+            total_amount=Decimal("10.00"),
+            currency=Currency.EUR,
+            confidence=0.6,
+            cost=Decimal("0.001"),
+        )
+
+        service.persist_with_category(
+            expense_description="Movie snacks",
+            category_name="Entertainment",
+            response=response,
+        )
+
+        mock_expense_repo.add.assert_called_once()
+
+    def test_persist_with_no_repo_raises(self, mock_assistant):
+        service = ClassificationService(assistant=mock_assistant, expense_repo=None)
+
+        response = ExpenseCategorizationResponse(
+            category=ExpenseCategory.FOOD,
+            total_amount=Decimal("10.00"),
+            currency=Currency.EUR,
+            confidence=0.6,
+            cost=Decimal("0.001"),
+        )
+
+        with pytest.raises(MissingRepositoryError, match="no repository"):
+            service.persist_with_category(
+                expense_description="Movie snacks",
+                category_name="Entertainment",
+                response=response,
+            )
+
+    def test_service_builds_correct_messages(self, mock_assistant):
+        service = ClassificationService(assistant=mock_assistant)
+        service.classify("Test expense")
+
+        call_args = mock_assistant.completion.call_args
+        messages = call_args[0][0]
+
+        assert len(messages) >= 2
+        assert messages[0]["role"] == "system"
+        assert messages[1]["role"] == "user"
