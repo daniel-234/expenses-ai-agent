@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import create_autospec
 
 import pytest
+from sqlmodel import Session, SQLModel, create_engine
 
 from expenses_ai_agent.llms.base import Assistant
 from expenses_ai_agent.llms.output import ExpenseCategorizationResponse
@@ -12,8 +14,22 @@ from expenses_ai_agent.services.classification import (
     ClassificationService,
     MissingRepositoryError,
 )
-from expenses_ai_agent.storage.models import Currency, ExpenseCategory
-from expenses_ai_agent.storage.repo import ExpenseRepository
+from expenses_ai_agent.storage.exceptions import ExpenseNotFoundError
+from expenses_ai_agent.storage.models import Currency, Expense, ExpenseCategory
+from expenses_ai_agent.storage.repo import DBExpenseRepo, ExpenseRepository
+
+
+@pytest.fixture
+def db_engine():
+    engine = create_engine("sqlite:///:memory:")
+    SQLModel.metadata.create_all(engine)
+    return engine
+
+
+@pytest.fixture
+def db_session(db_engine):
+    with Session(db_engine) as session:
+        yield session
 
 
 class TestClassificationPrompt:
@@ -202,3 +218,109 @@ class TestClassificationService:
         assert len(messages) >= 2
         assert messages[0]["role"] == "system"
         assert messages[1]["role"] == "user"
+
+
+class TestDBExpenseRepo:
+    """Tests for DBExpenseRepo."""
+
+    def test_db_expense_repo_add_and_get(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        expense = Expense(
+            amount=Decimal("42.50"),
+            currency=Currency.EUR,
+            description="Lunch",
+            category=ExpenseCategory.FOOD,
+        )
+        repo.add(expense)
+        assert expense.id is not None
+
+        result = repo.get(expense.id)
+        assert result is not None
+        assert result.amount == Decimal("42.50")
+
+    def test_db_expense_repo_list(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        repo.add(Expense(amount=Decimal("10.00"), currency=Currency.EUR))
+        repo.add(Expense(amount=Decimal("20.00"), currency=Currency.USD))
+
+        expenses = repo.get_all()
+        assert len(expenses) == 2
+
+    def test_db_expense_repo_delete(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        expense = Expense(amount=Decimal("15.00"), currency=Currency.EUR)
+        repo.add(expense)
+        assert expense.id is not None
+        expense_id = expense.id
+
+        repo.delete(expense_id)
+        assert repo.get(expense_id) is None
+
+    def test_db_expense_repo_delete_nonexistent_raises(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        with pytest.raises(ExpenseNotFoundError):
+            repo.delete(99999)
+
+    def test_db_expense_repo_search_by_category(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        repo.add(
+            Expense(
+                amount=Decimal("10"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.FOOD,
+            )
+        )
+        repo.add(
+            Expense(
+                amount=Decimal("20"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.FOOD,
+            )
+        )
+        repo.add(
+            Expense(
+                amount=Decimal("30"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.TRANSPORT,
+            )
+        )
+
+        food_expenses = repo.search_by_category(ExpenseCategory.FOOD)
+        assert len(food_expenses) == 2
+
+    def test_db_expense_repo_search_by_dates(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        now = datetime.now(timezone.utc)
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+
+        repo.add(Expense(amount=Decimal("10"), currency=Currency.EUR, date=now))
+        repo.add(Expense(amount=Decimal("20"), currency=Currency.EUR, date=yesterday))
+        repo.add(Expense(amount=Decimal("30"), currency=Currency.EUR, date=last_week))
+
+        start = now - timedelta(days=3)
+        results = repo.search_by_dates(start, now)
+
+        assert len(results) == 2
+
+    def test_db_expense_repo_list_by_user(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        repo.add(
+            Expense(amount=Decimal("10"), currency=Currency.EUR, telegram_user_id=100)
+        )
+        repo.add(
+            Expense(amount=Decimal("20"), currency=Currency.EUR, telegram_user_id=100)
+        )
+        repo.add(
+            Expense(amount=Decimal("30"), currency=Currency.EUR, telegram_user_id=200)
+        )
+
+        user_100_expenses = repo.list_by_user(telegram_user_id=100)
+        assert len(user_100_expenses) == 2
