@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-expenses-ai-agent = "expenses_ai_agent:main"
+expenses-ai-agent = "expenses_ai_agent.cli.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.11.19,<0.12.0"]
