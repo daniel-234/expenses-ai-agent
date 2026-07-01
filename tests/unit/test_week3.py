@@ -350,6 +350,35 @@ class TestDBExpenseRepo:
         user_100_expenses = repo.list_by_user(telegram_user_id=100)
         assert len(user_100_expenses) == 2
 
+    def test_db_expense_repo_without_session(self, tmp_path):
+        db_url = f"sqlite:///{tmp_path / 'test.db'}"
+        repo = DBExpenseRepo(db_url=db_url, session=None)
+
+        repo.add(
+            Expense(
+                amount=Decimal("10"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.FOOD,
+            )
+        )
+        repo.add(
+            Expense(
+                amount=Decimal("20"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.FOOD,
+            )
+        )
+        repo.add(
+            Expense(
+                amount=Decimal("30"),
+                currency=Currency.EUR,
+                category=ExpenseCategory.TRANSPORT,
+            )
+        )
+
+        food_expenses = repo.search_by_category(ExpenseCategory.FOOD)
+        assert len(food_expenses) == 2
+
 
 class TestCLIApp:
     """Tests for CLI application."""
