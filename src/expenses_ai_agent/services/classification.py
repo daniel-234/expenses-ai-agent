@@ -41,13 +41,13 @@ class ClassificationService:
     def persist_with_category(
         self,
         expense_description: str,
-        category_name: str,
+        category: ExpenseCategory,
         response: ExpenseCategorizationResponse,
     ) -> None:
         expense = Expense(
             amount=response.total_amount,
             currency=response.currency,
-            category=ExpenseCategory(category_name),
+            category=category,
             description=expense_description,
         )
         if self.expense_repo is None:

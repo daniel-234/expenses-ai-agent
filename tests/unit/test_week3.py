@@ -212,7 +212,7 @@ class TestClassificationService:
 
         service.persist_with_category(
             expense_description="Movie snacks",
-            category_name="Entertainment",
+            category=ExpenseCategory.ENTERTAINMENT,
             response=response,
         )
 
@@ -238,7 +238,7 @@ class TestClassificationService:
         with pytest.raises(MissingRepositoryError, match="no repository"):
             service.persist_with_category(
                 expense_description="Movie snacks",
-                category_name="Entertainment",
+                category=ExpenseCategory.ENTERTAINMENT,
                 response=response,
             )
 
