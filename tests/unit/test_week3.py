@@ -218,6 +218,9 @@ class TestClassificationService:
 
         mock_expense_repo.add.assert_called_once()
 
+        added = mock_expense_repo.add.call_args.args[0]
+        assert added.category == ExpenseCategory.ENTERTAINMENT
+
     def test_persist_raises_if_no_repo(self, mock_assistant):
         service = ClassificationService(assistant=mock_assistant, expense_repo=None)
 
