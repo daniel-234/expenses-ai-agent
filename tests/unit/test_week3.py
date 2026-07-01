@@ -461,6 +461,7 @@ class TestCLIApp:
                 result = cli_runner.invoke(app, ["Test expense"])
                 output = result.output
                 assert "Food" in output
+                assert "USD" in output
 
     def test_cli_handles_errors_and_shows_info_to_user(
         self, cli_runner, mock_classification_response
