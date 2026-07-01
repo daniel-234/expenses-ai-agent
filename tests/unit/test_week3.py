@@ -18,7 +18,11 @@ from expenses_ai_agent.services.classification import (
 )
 from expenses_ai_agent.storage.exceptions import ExpenseNotFoundError
 from expenses_ai_agent.storage.models import Currency, Expense, ExpenseCategory
-from expenses_ai_agent.storage.repo import DBExpenseRepo, ExpenseRepository
+from expenses_ai_agent.storage.repo import (
+    DBExpenseRepo,
+    ExpenseRepository,
+    InMemoryExpenseRepository,
+)
 
 
 @pytest.fixture
@@ -337,7 +341,8 @@ class TestDBExpenseRepo:
         start = now - timedelta(days=3)
         results = repo.search_by_dates(start, now)
 
-        assert len(results) == 2
+        assert Decimal("10") not in [e.amount for e in results]
+        assert len(results) == 1
 
     def test_db_expense_repo_list_by_user(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
@@ -383,6 +388,27 @@ class TestDBExpenseRepo:
 
         food_expenses = repo.search_by_category(ExpenseCategory.FOOD)
         assert len(food_expenses) == 2
+
+
+class TestInMemoryExpenseRepo:
+    """Tests for InMemoryExpenseRepo."""
+
+    def test_in_memory_expense_repo_search_by_dates(self):
+        repo = InMemoryExpenseRepository()
+
+        now = datetime.now(timezone.utc)
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+
+        repo.add(Expense(amount=Decimal("10"), currency=Currency.EUR, date=now))
+        repo.add(Expense(amount=Decimal("20"), currency=Currency.EUR, date=yesterday))
+        repo.add(Expense(amount=Decimal("30"), currency=Currency.EUR, date=last_week))
+
+        start = now - timedelta(days=3)
+        results = repo.search_by_dates(start, now)
+
+        assert Decimal("10") not in [e.amount for e in results]
+        assert len(results) == 1
 
 
 class TestCLIApp:

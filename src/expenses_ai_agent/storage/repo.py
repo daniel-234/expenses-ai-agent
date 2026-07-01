@@ -78,7 +78,7 @@ class InMemoryExpenseRepository(ExpenseRepository):
         results = [
             expense
             for expense in self._expenses.values()
-            if start <= expense.date <= end
+            if start <= expense.date < end
         ]
         return results
 
@@ -130,7 +130,7 @@ class DBExpenseRepo(ExpenseRepository):
 
     def search_by_dates(self, start: datetime, end: datetime) -> list[Expense]:
         statement = (
-            select(Expense).where(start <= Expense.date).where(Expense.date <= end)
+            select(Expense).where(start <= Expense.date).where(Expense.date < end)
         )
         return list(self.session.exec(statement))
 
