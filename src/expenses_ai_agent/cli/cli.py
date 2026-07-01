@@ -33,7 +33,7 @@ def _display_result(result: ClassificationResult) -> None:
     response = result.response
     table.add_row("Category", response.category)
     table.add_row("Amount", str(response.total_amount))
-    table.add_row("Currency", str(response.currency))
+    table.add_row("Currency", response.currency)
     table.add_row("Confidence", f"{response.confidence:.0%}")
     table.add_row("Persisted", "Yes" if result.persisted else "No")
     console.print(table)

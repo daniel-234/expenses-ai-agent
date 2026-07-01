@@ -71,7 +71,7 @@ class ClassificationService:
         expense = Expense(
             amount=response.total_amount,
             currency=response.currency,
-            category=ExpenseCategory(response.category),
+            category=response.category,
             description=expense_description,
         )
 
