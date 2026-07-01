@@ -29,7 +29,11 @@ class ClassificationService:
         messages = self._build_messages(expense_description)
         response = self.assistant.completion(messages)
 
-        if persist and self.expense_repo:
+        if persist:
+            if self.expense_repo is None:
+                raise MissingRepositoryError(
+                    "There is no repository provided to persist the expense"
+                )
             self._persist_expense(expense_description, response)
 
         return ClassificationResult(response=response, persisted=persist)
@@ -47,7 +51,9 @@ class ClassificationService:
             description=expense_description,
         )
         if self.expense_repo is None:
-            raise MissingRepositoryError("There is no repository provided to persist")
+            raise MissingRepositoryError(
+                "There is no repository provided to persist the expense"
+            )
         self.expense_repo.add(expense)
 
     def _build_messages(self, expense_description: str) -> Messages:
@@ -68,5 +74,6 @@ class ClassificationService:
             category=ExpenseCategory(response.category),
             description=expense_description,
         )
-        if self.expense_repo is not None:
-            self.expense_repo.add(expense)
+
+        assert self.expense_repo is not None
+        self.expense_repo.add(expense)

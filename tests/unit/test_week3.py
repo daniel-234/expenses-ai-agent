@@ -209,7 +209,13 @@ class TestClassificationService:
 
         mock_expense_repo.add.assert_called_once()
 
-    def test_persist_with_no_repo_raises(self, mock_assistant):
+    def test_persist_raises_if_no_repo(self, mock_assistant):
+        service = ClassificationService(assistant=mock_assistant, expense_repo=None)
+
+        with pytest.raises(MissingRepositoryError, match="no repository"):
+            service.classify("Coffee at Starbucks $5.50", persist=True)
+
+    def test_persist_with_category_raises_if_no_repo(self, mock_assistant):
         service = ClassificationService(assistant=mock_assistant, expense_repo=None)
 
         response = ExpenseCategorizationResponse(
