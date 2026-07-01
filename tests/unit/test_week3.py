@@ -435,3 +435,22 @@ class TestCLIApp:
                 result = cli_runner.invoke(app, ["Test expense"])
                 output = result.output
                 assert "Food" in output
+
+    def test_cli_handles_errors_and_shows_info_to_user(
+        self, cli_runner, mock_classification_response
+    ):
+        with patch(
+            "expenses_ai_agent.cli.cli.ClassificationService"
+        ) as mock_service_cls:
+            mock_service = create_autospec(ClassificationService)
+            mock_result = create_autospec(ClassificationResult)
+            mock_result.response = mock_classification_response
+            mock_service.classify.side_effect = Exception("quota exceeded")
+
+            mock_service_cls.return_value = mock_service
+
+            with patch("expenses_ai_agent.cli.cli.OpenAIAssistant"):
+                result = cli_runner.invoke(app, ["Test expense"])
+                output = result.output
+                assert "Error" in output
+                assert result.exit_code == 1

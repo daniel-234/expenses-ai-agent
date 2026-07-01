@@ -17,10 +17,13 @@ def classify(
     db: bool = typer.Option(False, "--db", help="Persist to database"),
 ):
     """Classify an expense using AI."""
-    service = _build_service(db=db)
-    result = service.classify(description, persist=db)
-
-    _display_result(result)
+    try:
+        service = _build_service(db=db)
+        result = service.classify(description, persist=db)
+        _display_result(result)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
 
 
 def _display_result(result: ClassificationResult) -> None:
