@@ -344,8 +344,8 @@ class TestDBExpenseRepo:
         start = now - timedelta(days=3)
         results = repo.search_by_dates(start, now)
 
-        assert Decimal("10") not in [e.amount for e in results]
         assert len(results) == 1
+        assert results[0].amount == Decimal("20")
 
     def test_db_expense_repo_list_by_user(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
@@ -410,8 +410,8 @@ class TestInMemoryExpenseRepo:
         start = now - timedelta(days=3)
         results = repo.search_by_dates(start, now)
 
-        assert Decimal("10") not in [e.amount for e in results]
         assert len(results) == 1
+        assert results[0].amount == Decimal("20")
 
 
 class TestCLIApp:
