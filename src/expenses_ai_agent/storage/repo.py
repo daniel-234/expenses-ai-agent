@@ -119,7 +119,7 @@ class DBExpenseRepo(ExpenseRepository):
 
     def delete(self, id: int) -> None:
         expense = self.get(id)
-        if not expense:
+        if expense is None:
             raise ExpenseNotFoundError(id)
         self.session.delete(expense)
         self.session.commit()
