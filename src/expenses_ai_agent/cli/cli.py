@@ -7,6 +7,7 @@ from ..services.classification import ClassificationResult, ClassificationServic
 from ..settings import Settings
 from ..storage.repo import DBExpenseRepo
 
+DEFAULT_MODEL = "gpt-4o-mini"
 app = typer.Typer()
 console = Console()
 
@@ -40,7 +41,7 @@ def _display_result(result: ClassificationResult) -> None:
 
 
 def _build_service(db: bool) -> ClassificationService:
-    assistant = OpenAIAssistant(model="gpt-4o-mini")
+    assistant = OpenAIAssistant(model=DEFAULT_MODEL)
     expense_repo = None
     if db:
         settings = Settings.model_validate({})
