@@ -475,12 +475,12 @@ class TestCLIApp:
             mock_service = create_autospec(ClassificationService)
             mock_result = create_autospec(ClassificationResult)
             mock_result.response = mock_classification_response
-            mock_service.classify.side_effect = Exception("quota exceeded")
+            mock_service.classify.side_effect = MissingRepositoryError("no repository")
 
             mock_service_cls.return_value = mock_service
 
             with patch("expenses_ai_agent.cli.cli.OpenAIAssistant"):
                 result = cli_runner.invoke(app, ["Test expense"])
                 output = result.output
-                assert "Error" in output
+                assert "no repository" in output
                 assert result.exit_code == 1

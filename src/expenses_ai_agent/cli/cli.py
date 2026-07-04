@@ -1,9 +1,15 @@
 import typer
+from openai import APIError
+from pydantic import ValidationError
 from rich.console import Console
 from rich.table import Table
 
 from ..llms.openai import OpenAIAssistant
-from ..services.classification import ClassificationResult, ClassificationService
+from ..services.classification import (
+    ClassificationResult,
+    ClassificationService,
+    MissingRepositoryError,
+)
 from ..settings import Settings
 from ..storage.repo import DBExpenseRepo
 
@@ -22,7 +28,7 @@ def classify(
         service = _build_service(db=db)
         result = service.classify(description, persist=db)
         _display_result(result)
-    except Exception as e:
+    except (APIError, ValidationError, MissingRepositoryError) as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
