@@ -38,25 +38,6 @@ class ClassificationService:
 
         return ClassificationResult(response=response, persisted=persist)
 
-    def persist_with_category(
-        self,
-        expense_description: str,
-        category: ExpenseCategory,
-        response: ExpenseCategorizationResponse,
-    ) -> None:
-        if self.expense_repo is None:
-            raise MissingRepositoryError(
-                "There is no repository provided to persist the expense"
-            )
-        expense = Expense(
-            amount=response.total_amount,
-            currency=response.currency,
-            category=category,
-            description=expense_description,
-        )
-
-        self.expense_repo.add(expense)
-
     def _build_messages(self, expense_description: str) -> Messages:
         return [
             {"role": "system", "content": CLASSIFICATION_PROMPT},
@@ -67,14 +48,29 @@ class ClassificationService:
         ]
 
     def _persist_expense(
-        self, expense_description: str, response: ExpenseCategorizationResponse
+        self,
+        expense_description: str,
+        response: ExpenseCategorizationResponse,
+        category: ExpenseCategory | None = None,
     ) -> None:
-        assert self.expense_repo is not None
+        if self.expense_repo is None:
+            raise MissingRepositoryError(
+                "There is no repository provided to persist the expense"
+            )
+
         expense = Expense(
             amount=response.total_amount,
             currency=response.currency,
-            category=response.category,
+            category=category if category is not None else response.category,
             description=expense_description,
         )
 
         self.expense_repo.add(expense)
+
+    def persist_with_category(
+        self,
+        expense_description: str,
+        response: ExpenseCategorizationResponse,
+        category: ExpenseCategory,
+    ) -> None:
+        self._persist_expense(expense_description, response, category)
