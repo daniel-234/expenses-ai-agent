@@ -347,15 +347,14 @@ class TestDBExpenseRepo:
         assert len(results) == 1
         assert results[0].amount == Decimal("20")
 
-    def test_db_expense_repo_search_by_dates_boundaries(self, db_session):
+    def test_db_expense_repo_search_by_dates_start_is_inclusive(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
 
         now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
         last_week = now - timedelta(days=7)
 
-        repo.add(Expense(amount=Decimal("10"), currency=Currency.EUR, date=last_week))
-        repo.add(Expense(amount=Decimal("20"), currency=Currency.EUR, date=yesterday))
+        repo.add(Expense(amount=Decimal("30"), currency=Currency.EUR, date=last_week))
 
         start = last_week
         end = yesterday
@@ -363,7 +362,23 @@ class TestDBExpenseRepo:
         results = repo.search_by_dates(start, end)
 
         assert len(results) == 1
-        assert results[0].amount == Decimal("10")
+        assert results[0].amount == Decimal("30")
+
+    def test_db_expense_repo_search_by_dates_end_is_exclusive(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        now = datetime.now(timezone.utc)
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+
+        repo.add(Expense(amount=Decimal("20"), currency=Currency.EUR, date=yesterday))
+
+        start = last_week
+        end = yesterday
+
+        results = repo.search_by_dates(start, end)
+
+        assert results == []
 
     def test_db_expense_repo_list_by_user(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
@@ -431,15 +446,14 @@ class TestInMemoryExpenseRepo:
         assert len(results) == 1
         assert results[0].amount == Decimal("20")
 
-    def test_in_memory_expense_repo_search_by_dates_boundaries(self):
+    def test_in_memory_expense_repo_search_start_is_inclusive(self):
         repo = InMemoryExpenseRepository()
 
         now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
         last_week = now - timedelta(days=7)
 
-        repo.add(Expense(amount=Decimal("10"), currency=Currency.EUR, date=last_week))
-        repo.add(Expense(amount=Decimal("20"), currency=Currency.EUR, date=yesterday))
+        repo.add(Expense(amount=Decimal("30"), currency=Currency.EUR, date=last_week))
 
         start = last_week
         end = yesterday
@@ -447,7 +461,23 @@ class TestInMemoryExpenseRepo:
         results = repo.search_by_dates(start, end)
 
         assert len(results) == 1
-        assert results[0].amount == Decimal("10")
+        assert results[0].amount == Decimal("30")
+
+    def test_in_memory_expense_repo_search_end_is_exclusive(self):
+        repo = InMemoryExpenseRepository()
+
+        now = datetime.now(timezone.utc)
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+
+        repo.add(Expense(amount=Decimal("20"), currency=Currency.EUR, date=yesterday))
+
+        start = last_week
+        end = yesterday
+
+        results = repo.search_by_dates(start, end)
+
+        assert results == []
 
 
 class TestCLIApp:
