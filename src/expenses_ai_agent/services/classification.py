@@ -52,6 +52,7 @@ class ClassificationService:
         expense_description: str,
         response: ExpenseCategorizationResponse,
         category: ExpenseCategory | None = None,
+        telegram_user_id: int | None = None,
     ) -> None:
         if self.expense_repo is None:
             raise MissingRepositoryError(
@@ -62,6 +63,7 @@ class ClassificationService:
             amount=response.total_amount,
             currency=response.currency,
             category=category if category is not None else response.category,
+            telegram_user_id=telegram_user_id,
             description=expense_description,
         )
 
@@ -72,5 +74,6 @@ class ClassificationService:
         expense_description: str,
         response: ExpenseCategorizationResponse,
         category: ExpenseCategory,
+        telegram_user_id: int | None = None,
     ) -> None:
-        self._persist_expense(expense_description, response, category)
+        self._persist_expense(expense_description, response, category, telegram_user_id)

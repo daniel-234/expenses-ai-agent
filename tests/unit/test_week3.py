@@ -214,12 +214,14 @@ class TestClassificationService:
             expense_description="Movie snacks",
             category=ExpenseCategory.ENTERTAINMENT,
             response=response,
+            telegram_user_id=99,
         )
 
         mock_expense_repo.add.assert_called_once()
 
         added = mock_expense_repo.add.call_args.args[0]
         assert added.category == ExpenseCategory.ENTERTAINMENT
+        assert added.telegram_user_id == 99
 
     def test_persist_raises_if_no_repo(self, mock_assistant):
         service = ClassificationService(assistant=mock_assistant, expense_repo=None)
