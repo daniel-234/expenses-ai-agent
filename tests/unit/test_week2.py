@@ -187,6 +187,7 @@ class TestCurrencyConversion:
         monkeypatch.setenv("EXCHANGE_RATE_API_KEY", "test-key")
         monkeypatch.setenv("OPENAI_API_KEY", "...")
         monkeypatch.setenv("DATABASE_URL", "...")
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "...")
         monkeypatch.chdir(tmp_path)
         with (
             patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
@@ -214,6 +215,7 @@ class TestCurrencyConversion:
         monkeypatch.setenv("EXCHANGE_RATE_API_KEY", "test-key")
         monkeypatch.setenv("OPENAI_API_KEY", "...")
         monkeypatch.setenv("DATABASE_URL", "...")
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "...")
         monkeypatch.chdir(tmp_path)
         with (
             patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
