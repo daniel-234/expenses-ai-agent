@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from expenses_ai_agent.services.classification import ClassificationService
+from expenses_ai_agent.services.preprocessing import InputPreprocessor
 from expenses_ai_agent.storage.models import ExpenseCategory
 from expenses_ai_agent.telegram.keyboards import build_category_confirmation_keyboard
 
@@ -30,17 +31,29 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(HELP_TEXT)
 
 
+_preprocessor = InputPreprocessor()
+
+
 async def handle_expense_text(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     if not update.message or not update.message.text:
         return
+
+    processed = _preprocessor.preprocess(update.message.text)
+    if not processed.is_valid:
+        await update.message.reply_text(
+            f"Sorry, I couldn't process that: {processed.error}"
+        )
+        return
+    if processed.warnings:
+        await update.message.reply_text("Note: " + "; ".join(processed.warnings))
+
     service = context.bot_data["service"]
-    text = update.message.text
-    result = service.classify(text)
+    result = service.classify(processed.text)
 
     if context.user_data is not None:
-        context.user_data["expense_description"] = text
+        context.user_data["expense_description"] = processed.text
         context.user_data["classification_response"] = result.response
 
     keyboard = build_category_confirmation_keyboard(
