@@ -33,3 +33,6 @@ dev = [
     "ruff>=0.15.16",
     "ty>=0.0.46",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
