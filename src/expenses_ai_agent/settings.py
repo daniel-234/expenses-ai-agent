@@ -6,5 +6,6 @@ class Settings(BaseSettings):
     exchange_rate_api_key: str
     database_url: str
     telegram_bot_token: str
+    developer_chat_id: str
 
     model_config = SettingsConfigDict(env_file=".env")

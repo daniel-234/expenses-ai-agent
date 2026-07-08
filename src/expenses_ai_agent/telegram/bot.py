@@ -13,6 +13,7 @@ from expenses_ai_agent.llms.openai import OpenAIAssistant
 from expenses_ai_agent.services.classification import ClassificationService
 from expenses_ai_agent.storage.repo import DBExpenseRepo
 from expenses_ai_agent.telegram.handlers import (
+    error_handler,
     handle_category_selection,
     handle_expense_text,
     help_command,
@@ -42,6 +43,8 @@ def build_application(token: str, db_url: str, api_key: str) -> Application:
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_expense_text)
     )
+    application.add_error_handler(error_handler)
+
     return application
 
 
