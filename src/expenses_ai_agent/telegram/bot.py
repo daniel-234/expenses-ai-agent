@@ -3,15 +3,18 @@ import logging
 from telegram import Update
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
 )
 
 from expenses_ai_agent.telegram.handlers import (
+    CurrencyHandler,
     ExpenseConversationHandler,
     error_handler,
     help_command,
     start_command,
 )
+from expenses_ai_agent.telegram.keyboards import CURRENCY_CALLBACK_PREFIX
 
 from ..settings import Settings
 
@@ -23,10 +26,22 @@ def build_application(token: str, db_url: str, api_key: str) -> Application:
 
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_error_handler(error_handler)
+
+    currency_handler = CurrencyHandler(db_url=db_url)
+    application.add_handler(
+        CommandHandler("currency", currency_handler.currency_command)
+    )
+    application.add_handler(
+        CallbackQueryHandler(
+            currency_handler.handle_currency_selection,
+            pattern=f"^{CURRENCY_CALLBACK_PREFIX}",
+        )
+    )
+
     application.add_handler(
         ExpenseConversationHandler(db_url=db_url, api_key=api_key).build()
     )
-    application.add_error_handler(error_handler)
 
     return application
 

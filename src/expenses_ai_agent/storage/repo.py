@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from .exceptions import ExpenseNotFoundError
-from .models import Expense, ExpenseCategory
+from .models import Currency, Expense, ExpenseCategory, UserPreference
 
 
 class ExpenseRepository(ABC):
@@ -137,3 +137,34 @@ class DBExpenseRepo(ExpenseRepository):
     def list_by_user(self, telegram_user_id: int) -> list[Expense]:
         statement = select(Expense).where(Expense.telegram_user_id == telegram_user_id)
         return list(self.session.exec(statement))
+
+
+class DBUserPreferenceRepo:
+    def __init__(self, db_url: str, session: Session | None = None):
+        if session is None:
+            engine = create_engine(db_url)
+            SQLModel.metadata.create_all(engine)
+            self.db = Session(engine)
+        else:
+            self.db = session
+
+    def get_by_user_id(self, telegram_user_id: int) -> UserPreference | None:
+        return self.db.exec(
+            select(UserPreference).where(
+                UserPreference.telegram_user_id == telegram_user_id
+            )
+        ).first()
+
+    def upsert(self, telegram_user_id: int, currency: Currency) -> UserPreference:
+        pref = self.get_by_user_id(telegram_user_id)
+        if pref is None:
+            pref = UserPreference(
+                telegram_user_id=telegram_user_id, preferred_currency=currency
+            )
+            self.db.add(pref)
+        else:
+            pref.preferred_currency = currency
+            pref.updated_at = datetime.now(timezone.utc)
+        self.db.commit()
+        self.db.refresh(pref)
+        return pref
