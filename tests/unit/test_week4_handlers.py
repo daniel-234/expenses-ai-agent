@@ -229,9 +229,14 @@ class TestDBUserPreferenceRepoIntegration:
     def test_upsert_inserts_then_updates(self):
         repo = DBUserPreferenceRepo(db_url="sqlite:///:memory:")
         repo.upsert(telegram_user_id=42, currency=Currency.USD)
-        assert repo.get_by_user_id(42).preferred_currency == Currency.USD
+        first = repo.get_by_user_id(42)
+        assert first is not None
+        assert first.preferred_currency == Currency.USD
+
         repo.upsert(telegram_user_id=42, currency=Currency.EUR)
-        assert repo.get_by_user_id(42).preferred_currency == Currency.EUR
+        second = repo.get_by_user_id(42)
+        assert second is not None
+        assert second.preferred_currency == Currency.EUR
 
     def test_get_unknown_user_returns_none(self):
         assert (
