@@ -71,9 +71,9 @@ class TestExpenseCategoryEnum:
         ]
 
         for name in required:
-            assert name in [
-                c.value for c in ExpenseCategory
-            ], f"Category '{name}' is missing"
+            assert name in [c.value for c in ExpenseCategory], (
+                f"Category '{name}' is missing"
+            )
 
     def test_category_is_iterable(self):
         """Should be able to iterate over all category values."""
