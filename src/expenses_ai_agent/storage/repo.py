@@ -155,8 +155,20 @@ class DBUserPreferenceRepo:
             engine = create_engine(db_url)
             SQLModel.metadata.create_all(engine)
             self.db = Session(engine)
+            self._owns_session = True
         else:
             self.db = session
+            self._owns_session = False
+
+    def close(self) -> None:
+        if self._owns_session:
+            self.db.close()
+
+    def __enter__(self) -> "DBUserPreferenceRepo":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
     def get_by_user_id(self, telegram_user_id: int) -> UserPreference | None:
         return self.db.exec(

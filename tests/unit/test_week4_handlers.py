@@ -243,3 +243,17 @@ class TestDBUserPreferenceRepoIntegration:
             DBUserPreferenceRepo(db_url="sqlite:///:memory:").get_by_user_id(99999)
             is None
         )
+
+    def test_injected_session_is_not_closed_on_exit(self):
+        fake_session = MagicMock()
+        with DBUserPreferenceRepo(db_url="sqlite:///:memory:", session=fake_session):
+            pass
+
+        fake_session.close.assert_not_called()
+
+    def test_owned_session_is_closed_on_exit(self):
+        with patch("expenses_ai_agent.storage.repo.Session") as MockSession:
+            with DBUserPreferenceRepo(db_url="sqlite:///:memory:"):
+                pass
+
+        MockSession.return_value.close.assert_called_once()
