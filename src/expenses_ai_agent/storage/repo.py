@@ -104,6 +104,16 @@ class DBExpenseRepo(ExpenseRepository):
             self.session = Session(engine)
             self._owns_session = True
 
+    def close(self) -> None:
+        if self._owns_session:
+            self.session.close()
+
+    def __enter__(self) -> "DBExpenseRepo":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
     def add(self, expense: Expense) -> Expense:
         self.session.add(expense)
         self.session.commit()
