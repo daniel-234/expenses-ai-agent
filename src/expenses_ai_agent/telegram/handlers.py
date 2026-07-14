@@ -2,7 +2,9 @@ import html
 import json
 import logging
 import traceback
+from contextlib import asynccontextmanager
 from enum import IntEnum
+from typing import AsyncIterator
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -84,10 +86,12 @@ class ExpenseConversationHandler:
     def _build_assistant(self) -> OpenAIAssistant:
         return OpenAIAssistant(api_key=self._api_key, model=self._model)
 
-    def _build_service(self) -> ClassificationService:
-        return ClassificationService(
-            self._build_assistant(), DBExpenseRepo(self._db_url)
-        )
+    @asynccontextmanager
+    async def _build_service(self) -> AsyncIterator[ClassificationService]:
+        with DBExpenseRepo(self._db_url) as expense_repo:
+            yield ClassificationService(
+                self._build_assistant(), expense_repo=expense_repo
+            )
 
     def _get_categories(self) -> list[str]:
         return [c.value for c in ExpenseCategory]
@@ -124,15 +128,16 @@ class ExpenseConversationHandler:
         if processed.warnings:
             await update.message.reply_text("Note: " + "; ".join(processed.warnings))
 
-        result = self._build_service().classify(processed.text)
-        if context.user_data is not None:
-            context.user_data["expense_description"] = processed.text
-            context.user_data["classification_response"] = result.response
+        async with self._build_service() as service:
+            result = service.classify(processed.text)
+            if context.user_data is not None:
+                context.user_data["expense_description"] = processed.text
+                context.user_data["classification_response"] = result.response
 
-        keyboard = build_category_confirmation_keyboard(
-            suggested_category=result.response.category,
-            all_categories=self._get_categories(),
-        )
+            keyboard = build_category_confirmation_keyboard(
+                suggested_category=result.response.category,
+                all_categories=self._get_categories(),
+            )
         await update.message.reply_text(
             f"Classified as {result.response.category} "
             f"({result.response.confidence:.0%} confidence)\n"
@@ -157,12 +162,13 @@ class ExpenseConversationHandler:
             await query.edit_message_text("Session expired. Send the expense again.")
             return ConversationHandler.END
 
-        self._build_service().persist_with_category(
-            expense_description=description,
-            category=category,
-            response=response,
-            telegram_user_id=update.effective_user.id,
-        )
+        async with self._build_service() as service:
+            service.persist_with_category(
+                expense_description=description,
+                category=category,
+                response=response,
+                telegram_user_id=update.effective_user.id,
+            )
         await query.edit_message_text(f"Saved as {category}!")
         return ConversationHandler.END
 
@@ -189,10 +195,11 @@ class CurrencyHandler:
             return
         await query.answer()
         currency_code = query.data.split(":", 1)[1]
-        DBUserPreferenceRepo(self._db_url).upsert(
-            telegram_user_id=update.effective_user.id,
-            currency=Currency(currency_code),
-        )
+        with DBUserPreferenceRepo(self._db_url) as repo:
+            repo.upsert(
+                telegram_user_id=update.effective_user.id,
+                currency=Currency(currency_code),
+            )
         await query.edit_message_text(f"Currency preference saved as {currency_code}.")
 
 

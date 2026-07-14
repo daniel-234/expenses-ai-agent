@@ -137,11 +137,15 @@ class TestExpenseConversationHandler:
         mock_context.user_data["expense_description"] = "Coffee $5.50"
         mock_context.user_data["classification_response"] = _response()
         handler = self._handler()
-        with patch.object(handler, "_build_service") as mock_build:
-            mock_build.return_value = MagicMock()
+        service = MagicMock()
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=service)
+        cm.__aexit__ = AsyncMock(return_value=None)
+        with patch.object(handler, "_build_service", return_value=cm):
             result = await handler.handle_category_selection(
                 mock_callback_update, mock_context
             )
+        service.persist_with_category.assert_called_once()
         assert result == ConversationHandler.END
         mock_callback_update.callback_query.answer.assert_awaited()
 
@@ -149,12 +153,25 @@ class TestExpenseConversationHandler:
         mock_context.user_data["expense_description"] = "Coffee $5.50"
         mock_context.user_data["classification_response"] = _response()
         handler = self._handler()
-        with patch.object(handler, "_build_service") as mock_build:
-            service = MagicMock()
-            mock_build.return_value = service
+        service = MagicMock()
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=service)
+        cm.__aexit__ = AsyncMock(return_value=None)
+        with patch.object(handler, "_build_service", return_value=cm):
             await handler.handle_category_selection(mock_callback_update, mock_context)
         kwargs = service.persist_with_category.call_args.kwargs
         assert kwargs.get("telegram_user_id") == 12345
+
+    async def test_category_selection_closes_session(
+        self, mock_callback_update, mock_context
+    ):
+        mock_context.user_data["expense_description"] = "Coffee $5.50"
+        mock_context.user_data["classification_response"] = _response()
+        handler = self._handler()
+        with patch("expenses_ai_agent.storage.repo.Session") as MockSession:
+            await handler.handle_category_selection(mock_callback_update, mock_context)
+
+        MockSession.return_value.close.assert_called_once()
 
     async def test_warning_input_still_classifies(self, mock_update, mock_context):
         mock_update.message.text = "Lunch at cafe"  # no amount -> warning, not error
