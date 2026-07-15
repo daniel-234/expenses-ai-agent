@@ -210,6 +210,16 @@ class TestExpenseConversationHandler:
         )
         assert result == ConversationHandler.END
 
+    async def test_category_selection_with_invalid_data_ends_conversation(
+        self, mock_callback_update, mock_context
+    ):
+        mock_callback_update.callback_query.data = "category:garbage"
+        result = await self._handler().handle_category_selection(
+            mock_callback_update, mock_context
+        )
+        assert result == ConversationHandler.END
+        mock_callback_update.callback_query.edit_message_text.assert_awaited()
+
 
 class TestCurrencyHandler:
     async def test_currency_command_shows_keyboard(self, mock_update, mock_context):
@@ -239,6 +249,16 @@ class TestCurrencyHandler:
             await CurrencyHandler(
                 db_url="sqlite:///:memory:"
             ).handle_currency_selection(update, mock_context)
+        repo.assert_not_called()
+
+    async def test_currency_selection_with_invalid_code_does_not_upsert(
+        self, mock_callback_update, mock_context
+    ):
+        mock_callback_update.callback_query.data = "setcurrency:garbage"
+        handler = CurrencyHandler(db_url="sqlite:///:memory:")
+        with patch("expenses_ai_agent.telegram.handlers.DBUserPreferenceRepo") as repo:
+            await handler.handle_currency_selection(mock_callback_update, mock_context)
+        mock_callback_update.callback_query.answer.assert_awaited()
         repo.assert_not_called()
 
 

@@ -153,7 +153,13 @@ class ExpenseConversationHandler:
         if not query or not query.data or not update.effective_user:
             return ConversationHandler.END
         await query.answer()
-        category = ExpenseCategory(query.data.split(":", 1)[1])
+        try:
+            category = ExpenseCategory(query.data.split(":", 1)[1])
+        except (IndexError, ValueError):
+            await query.edit_message_text(
+                "That option is no longer valid — please try again."
+            )
+            return ConversationHandler.END
 
         user_data = context.user_data or {}
         description = user_data.get("expense_description")
@@ -183,7 +189,7 @@ class CurrencyHandler:
         if not update.message:
             return
         await update.message.reply_text(
-            "Select your preferred currency:",
+            "Select your preferred currency: ",
             reply_markup=build_currency_selection_keyboard(),
         )
 
@@ -194,11 +200,18 @@ class CurrencyHandler:
         if not query or not query.data or not update.effective_user:
             return
         await query.answer()
-        currency_code = query.data.split(":", 1)[1]
+        try:
+            currency_code = query.data.split(":", 1)[1]
+            currency = Currency(currency_code)
+        except (IndexError, ValueError):
+            await query.edit_message_text(
+                "That option is no longer valid — please try again."
+            )
+            return
         with DBUserPreferenceRepo(self._db_url) as repo:
             repo.upsert(
                 telegram_user_id=update.effective_user.id,
-                currency=Currency(currency_code),
+                currency=currency,
             )
         await query.edit_message_text(f"Currency preference saved as {currency_code}.")
 
