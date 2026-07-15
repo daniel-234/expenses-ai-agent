@@ -1,3 +1,4 @@
+import asyncio
 import html
 import json
 import logging
@@ -129,7 +130,7 @@ class ExpenseConversationHandler:
             await update.message.reply_text("Note: " + "; ".join(processed.warnings))
 
         async with self._build_service() as service:
-            result = service.classify(processed.text)
+            result = await asyncio.to_thread(service.classify, processed.text)
             if context.user_data is not None:
                 context.user_data["expense_description"] = processed.text
                 context.user_data["classification_response"] = result.response
@@ -169,7 +170,8 @@ class ExpenseConversationHandler:
             return ConversationHandler.END
 
         async with self._build_service() as service:
-            service.persist_with_category(
+            await asyncio.to_thread(
+                service.persist_with_category,
                 expense_description=description,
                 category=category,
                 response=response,
@@ -209,7 +211,8 @@ class CurrencyHandler:
             )
             return
         with DBUserPreferenceRepo(self._db_url) as repo:
-            repo.upsert(
+            await asyncio.to_thread(
+                repo.upsert,
                 telegram_user_id=update.effective_user.id,
                 currency=currency,
             )
