@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from unittest.mock import create_autospec, patch
+from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
@@ -214,12 +214,14 @@ class TestClassificationService:
             expense_description="Movie snacks",
             category=ExpenseCategory.ENTERTAINMENT,
             response=response,
+            telegram_user_id=99,
         )
 
         mock_expense_repo.add.assert_called_once()
 
         added = mock_expense_repo.add.call_args.args[0]
         assert added.category == ExpenseCategory.ENTERTAINMENT
+        assert added.telegram_user_id == 99
 
     def test_persist_raises_if_no_repo(self, mock_assistant):
         service = ClassificationService(assistant=mock_assistant, expense_repo=None)
@@ -424,6 +426,21 @@ class TestDBExpenseRepo:
 
         food_expenses = repo.search_by_category(ExpenseCategory.FOOD)
         assert len(food_expenses) == 2
+
+    def test_injected_session_is_not_closed_on_exit(self, tmp_path):
+        db_url = f"sqlite:///{tmp_path / 'test.db'}"
+        fake_session = MagicMock()
+        repo = DBExpenseRepo(db_url=db_url, session=fake_session)
+        repo.close()
+
+        fake_session.close.assert_not_called()
+
+    def test_owned_session_is_closed_on_exit(self, tmp_path):
+        db_url = f"sqlite:///{tmp_path / 'test.db'}"
+        with patch("expenses_ai_agent.storage.repo.Session") as MockSession:
+            repo = DBExpenseRepo(db_url=db_url)
+            repo.close()
+        MockSession.return_value.close.assert_called_once()
 
 
 class TestInMemoryExpenseRepo:

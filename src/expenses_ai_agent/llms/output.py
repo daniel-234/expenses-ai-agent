@@ -9,7 +9,8 @@ from expenses_ai_agent.storage.models import Currency, ExpenseCategory
 class ExpenseCategorizationResponse(BaseModel):
     category: ExpenseCategory
     total_amount: Decimal = Field(
-        gt=0, description="Numeric amount extracted from the expense description"
+        ge=0,
+        description="Numeric amount extracted from the expense description - set at 0 if not provided",
     )
     currency: Currency = Field(
         description="Currency code from the description, default EUR"

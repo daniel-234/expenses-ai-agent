@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+from typing import Iterator
+
 import typer
 from openai import APIError
 from pydantic import ValidationError
@@ -25,8 +28,8 @@ def classify(
 ):
     """Classify an expense using AI."""
     try:
-        service = _build_service(db=db)
-        result = service.classify(description, persist=db)
+        with _build_service(db=db) as service:
+            result = service.classify(description, persist=db)
         _display_result(result)
     except (APIError, ValidationError, MissingRepositoryError) as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -46,10 +49,12 @@ def _display_result(result: ClassificationResult) -> None:
     console.print(table)
 
 
-def _build_service(db: bool) -> ClassificationService:
+@contextmanager
+def _build_service(db: bool) -> Iterator[ClassificationService]:
     assistant = OpenAIAssistant(model=DEFAULT_MODEL)
-    expense_repo = None
-    if db:
-        settings = Settings.model_validate({})
-        expense_repo = DBExpenseRepo(db_url=settings.database_url)
-    return ClassificationService(assistant=assistant, expense_repo=expense_repo)
+    if not db:
+        yield ClassificationService(assistant=assistant, expense_repo=None)
+        return
+    settings = Settings.model_validate({})
+    with DBExpenseRepo(db_url=settings.database_url) as expense_repo:
+        yield ClassificationService(assistant=assistant, expense_repo=expense_repo)

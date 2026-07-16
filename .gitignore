@@ -219,3 +219,6 @@ __marimo__/
 
 # Mac generated files
 *.DS_Store
+
+# Database generated files
+*.db
