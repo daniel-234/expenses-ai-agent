@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlmodel import SQLModel, create_engine
 
+from expenses_ai_agent.api.routes import expenses
+
 engine = create_engine("sqlite:///expenses.db")
 
 
@@ -14,6 +16,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Expense API", version="1.0.0", lifespan=lifespan)
+
+app.include_router(expenses.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")
