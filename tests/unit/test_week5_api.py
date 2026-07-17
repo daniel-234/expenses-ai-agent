@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from expenses_ai_agent.api.deps import get_expense_repo, get_user_id
 from expenses_ai_agent.api.main import app
 
 
@@ -19,3 +20,15 @@ class TestFastAPIApp:
         data = response.json()
         assert "status" in data
         assert data["status"] in ["ok", "healthy", "OK"]
+
+
+class TestDependencyInjection:
+    """Tests for dependency injection functions."""
+
+    def test_get_expense_repo_exists(self):
+        """get_expense_repo dependency should be importable."""
+        assert callable(get_expense_repo)
+
+    def test_get_user_id_exists(self):
+        """get_user_id dependency should be importable."""
+        assert callable(get_user_id)
