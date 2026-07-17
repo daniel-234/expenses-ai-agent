@@ -2,6 +2,11 @@ from fastapi.testclient import TestClient
 
 from expenses_ai_agent.api.deps import get_expense_repo, get_user_id
 from expenses_ai_agent.api.main import app
+from expenses_ai_agent.api.schemas.expense import (
+    ExpenseClassifyRequest,
+    ExpenseListResponse,
+    ExpenseResponse,
+)
 
 
 class TestFastAPIApp:
@@ -32,3 +37,22 @@ class TestDependencyInjection:
     def test_get_user_id_exists(self):
         """get_user_id dependency should be importable."""
         assert callable(get_user_id)
+
+
+class TestAPISchemas:
+    """Tests for Pydantic request/response schemas."""
+
+    def test_expense_classify_request_exists(self):
+        """ExpenseClassifyRequest schema should exist."""
+        request = ExpenseClassifyRequest(description="Test")
+        assert request.description == "Test"
+
+    def test_expense_response_exists(self):
+        """ExpenseResponse schema should exist."""
+        assert ExpenseResponse is not None
+
+    def test_expense_list_response_has_pagination(self):
+        """ExpenseListResponse should include pagination fields."""
+        fields = ExpenseListResponse.model_fields
+        assert "items" in fields
+        assert "total" in fields
