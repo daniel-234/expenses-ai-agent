@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from unittest.mock import create_autospec, patch
 
@@ -18,7 +19,7 @@ from expenses_ai_agent.services.classification import (
 )
 from expenses_ai_agent.storage.exceptions import ExpenseNotFoundError
 from expenses_ai_agent.storage.models import Currency, Expense, ExpenseCategory
-from expenses_ai_agent.storage.repo import ExpenseRepository
+from expenses_ai_agent.storage.repo import ExpenseRepository, InMemoryExpenseRepository
 
 
 @pytest.fixture
@@ -52,6 +53,23 @@ def test_client(mock_expense_repo):
     with TestClient(app) as client:
         yield client
     app.dependency_overrides.clear()
+
+
+def make_expense(
+    amount: Decimal,
+    date: datetime,
+    currency: Currency = Currency.EUR,
+    category: ExpenseCategory | None = ExpenseCategory.TRANSPORT,
+    telegram_user_id: int = 12345,
+) -> Expense:
+    """Factory function to create a expense entry."""
+    return Expense(
+        amount=amount,
+        currency=currency,
+        category=category,
+        telegram_user_id=telegram_user_id,
+        date=date,
+    )
 
 
 class TestFastAPIApp:
@@ -173,3 +191,157 @@ class TestExpenseRoutes:
             assert response.status_code == 201
             data = response.json()
             assert "category" in data
+
+
+class TestCategoryRoutes:
+    """Tests for category routes."""
+
+    def test_list_categories(self, test_client):
+        """GET /categories/ should return all category names."""
+        response = test_client.get("/api/v1/categories/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert "Food" in data
+
+
+class TestAnalyticsRoutes:
+    """Tests for analytics routes."""
+
+    def test_get_summary(self, test_client, mock_expense_repo):
+        """GET /analytics/summary should return aggregated data."""
+        mock_expense_repo.get_category_totals.return_value = {
+            "Food": Decimal("100.00"),
+            "Transport": Decimal("50.00"),
+        }
+        mock_expense_repo.get_monthly_totals.return_value = {
+            "2024-01": Decimal("150.00"),
+        }
+
+        response = test_client.get(
+            "/api/v1/analytics/summary", headers={"X-User-ID": "12345"}
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "category_totals" in data
+        assert "monthly_totals" in data
+        assert data["category_totals"]["Food"] == "100.00"
+        assert data["monthly_totals"]["2024-01"] == "150.00"
+
+
+class TestInMemoryExpenseRepositoryTotals:
+    """Test the two aggregation methods on the in memory repository."""
+
+    def test_monthly_totals_sum_correctly_per_month(self):
+        repo = InMemoryExpenseRepository()
+
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 7, 5)))
+
+        monthly_totals = repo.get_monthly_totals(12345)
+        assert monthly_totals == {"2026-06": Decimal("60"), "2026-07": Decimal("30")}
+
+    def test_category_totals_sum_correctly_per_category(self):
+        repo = InMemoryExpenseRepository()
+
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 6, 20),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 6, 20),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 7, 5),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("15"),
+                date=datetime(2026, 7, 5),
+                category=ExpenseCategory.FOOD,
+            )
+        )
+
+        category_totals = repo.get_category_totals(12345)
+        assert category_totals == {"Transport": Decimal("90"), "Food": Decimal("15")}
+
+    def test_count_only_selected_user_expenses(self):
+        repo = InMemoryExpenseRepository()
+
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 6, 20),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 6, 20),
+                telegram_user_id=40000,
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 7, 5),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("15"),
+                date=datetime(2026, 7, 5),
+                category=ExpenseCategory.FOOD,
+            )
+        )
+
+        category_totals = repo.get_category_totals(12345)
+        assert category_totals == {"Transport": Decimal("60"), "Food": Decimal("15")}
+
+    def test_category_none_lands_in_uncategorized(self):
+        repo = InMemoryExpenseRepository()
+
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 6, 20),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 6, 20),
+                category=None,
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("30"),
+                date=datetime(2026, 7, 5),
+            )
+        )
+        repo.add(
+            make_expense(
+                amount=Decimal("15"),
+                date=datetime(2026, 7, 5),
+                category=ExpenseCategory.FOOD,
+            )
+        )
+
+        category_totals = repo.get_category_totals(12345)
+        assert category_totals == {
+            "Transport": Decimal("60"),
+            "Uncategorized": Decimal("30"),
+            "Food": Decimal("15"),
+        }
