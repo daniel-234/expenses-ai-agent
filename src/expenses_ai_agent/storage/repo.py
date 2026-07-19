@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlmodel import Session, SQLModel, create_engine, select
 
@@ -40,6 +41,12 @@ class ExpenseRepository(ABC):
 
     @abstractmethod
     def list_by_user(self, telegram_user_id: int) -> list[Expense]: ...
+
+    @abstractmethod
+    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]: ...
+
+    @abstractmethod
+    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]: ...
 
 
 class InMemoryExpenseRepository(ExpenseRepository):
@@ -89,6 +96,30 @@ class InMemoryExpenseRepository(ExpenseRepository):
             if expense.telegram_user_id == telegram_user_id
         ]
         return results
+
+    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        monthly_totals = {}
+        for expense in user_expenses:
+            date = expense.date.strftime("%Y-%m")
+            if date not in monthly_totals.keys():
+                monthly_totals[date] = expense.amount
+            else:
+                monthly_totals[date] += expense.amount
+        return monthly_totals
+
+    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        category_totals = {}
+        for expense in user_expenses:
+            category = (
+                "Uncategorized" if expense.category is None else str(expense.category)
+            )
+            if category not in category_totals.keys():
+                category_totals[category] = expense.amount
+            else:
+                category_totals[category] += expense.amount
+        return category_totals
 
 
 class DBExpenseRepo(ExpenseRepository):
@@ -147,6 +178,30 @@ class DBExpenseRepo(ExpenseRepository):
     def list_by_user(self, telegram_user_id: int) -> list[Expense]:
         statement = select(Expense).where(Expense.telegram_user_id == telegram_user_id)
         return list(self.session.exec(statement))
+
+    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        monthly_totals = {}
+        for expense in user_expenses:
+            date = expense.date.strftime("%Y-%m")
+            if date not in monthly_totals.keys():
+                monthly_totals[date] = expense.amount
+            else:
+                monthly_totals[date] += expense.amount
+        return monthly_totals
+
+    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        category_totals = {}
+        for expense in user_expenses:
+            category = (
+                "Uncategorized" if expense.category is None else str(expense.category)
+            )
+            if category not in category_totals.keys():
+                category_totals[category] = expense.amount
+            else:
+                category_totals[category] += expense.amount
+        return category_totals
 
 
 class DBUserPreferenceRepo:
