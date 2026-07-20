@@ -1,5 +1,6 @@
 from textwrap import dedent
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 
@@ -200,3 +201,38 @@ class TestAddExpenseView:
         assert not at.exception
         assert len(at.error) == 1
         assert "Cannot connect" in at.error[0].value
+
+
+class TestStreamlitApp:
+    @pytest.fixture
+    def at(self):
+        return AppTest.from_file(
+            "src/expenses_ai_agent/streamlit/app.py",
+            default_timeout=5.0,
+        ).run()
+
+    def test_app_renders_without_crash(self, at):
+        # API is not running so dashboard shows a connection error, but the
+        # app itself must not raise an unhandled exception.
+        assert not at.exception
+
+    def test_sidebar_has_user_id_input(self, at):
+        assert len(at.sidebar.text_input) == 1
+        assert at.sidebar.text_input[0].value == "12345"
+
+    def test_sidebar_has_navigation_radio(self, at):
+        radio = at.sidebar.radio[0]
+        assert set(radio.options) == {"Dashboard", "Expenses", "Add Expense"}
+
+    def test_default_page_is_dashboard(self, at):
+        assert at.header[0].value == "Dashboard"
+
+    def test_navigate_to_expenses(self, at):
+        at.sidebar.radio[0].set_value("Expenses").run()
+        assert not at.exception
+        assert at.header[0].value == "Expenses"
+
+    def test_navigate_to_add_expense(self, at):
+        at.sidebar.radio[0].set_value("Add Expense").run()
+        assert not at.exception
+        assert at.header[0].value == "Add Expense"
