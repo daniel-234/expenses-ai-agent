@@ -141,3 +141,62 @@ class TestExpensesView:
         assert not at.exception
         assert len(at.error) == 1
         assert "Cannot connect" in at.error[0].value
+
+
+class TestAddExpenseView:
+    def test_renders_header_and_form(self):
+        at = _run("""
+            from unittest.mock import MagicMock
+            from expenses_ai_agent.streamlit.views.add_expense import render
+            client = MagicMock()
+            render(client, user_id=12345)
+        """)
+        assert not at.exception
+        assert at.header[0].value == "Add Expense"
+        assert len(at.text_input) == 1
+
+    def test_shows_warning_on_empty_submission(self):
+        at = _run("""
+            from unittest.mock import MagicMock
+            from expenses_ai_agent.streamlit.views.add_expense import render
+            client = MagicMock()
+            render(client, user_id=12345)
+        """)
+        at.text_input[0].input("")
+        at.button[0].click().run()
+        assert not at.exception
+        assert len(at.warning) == 1
+
+    def test_shows_success_with_classification_result(self):
+        at = _run("""
+            from unittest.mock import MagicMock
+            from expenses_ai_agent.streamlit.views.add_expense import render
+            client = MagicMock()
+            client.classify_expense.return_value = {
+                "category": "Food",
+                "total_amount": "12.50",
+                "currency": "EUR",
+                "confidence": 0.95,
+            }
+            render(client, user_id=12345)
+        """)
+        at.text_input[0].input("Coffee at Starbucks")
+        at.button[0].click().run()
+        assert not at.exception
+        assert len(at.success) == 1
+        assert "Food" in at.success[0].value
+
+    def test_shows_error_on_connection_failure(self):
+        at = _run("""
+            from unittest.mock import MagicMock
+            from httpx import RequestError
+            from expenses_ai_agent.streamlit.views.add_expense import render
+            client = MagicMock()
+            client.classify_expense.side_effect = RequestError("refused")
+            render(client, user_id=12345)
+        """)
+        at.text_input[0].input("Coffee at Starbucks")
+        at.button[0].click().run()
+        assert not at.exception
+        assert len(at.error) == 1
+        assert "Cannot connect" in at.error[0].value
