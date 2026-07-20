@@ -30,4 +30,4 @@ def render(api_client: ExpenseAPIClient, user_id: int) -> None:
         if submitted and description.strip() == "":
             st.warning("The expense description is empty")
     except RequestError:
-        st.error("Cannot connect...")
+        st.error("Cannot connect to the server. Please try again later.")

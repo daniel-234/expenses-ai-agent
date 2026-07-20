@@ -34,6 +34,6 @@ def render(api_client: ExpenseAPIClient, user_id: int) -> None:
         else:
             st.info("No spending data yet — add an expense to see the breakdown")
     except HTTPStatusError as e:
-        st.error(f"Server error: {e.response.status_code}")
+        st.error(f"Cannot connect to server: {e.response.status_code}")
     except RequestError:
-        st.error("Cannot connect...")
+        st.error("Cannot connect to the server. Please try again later.")
