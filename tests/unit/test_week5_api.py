@@ -5,8 +5,15 @@ from unittest.mock import create_autospec, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from expenses_ai_agent.api.deps import get_expense_repo, get_user_id
+from expenses_ai_agent.api.deps import (
+    engine as deps_engine,
+)
+from expenses_ai_agent.api.deps import (
+    get_expense_repo,
+    get_user_id,
+)
 from expenses_ai_agent.api.main import app
+from expenses_ai_agent.api.main import engine as main_engine
 from expenses_ai_agent.api.schemas.expense import (
     ExpenseClassifyRequest,
     ExpenseListResponse,
@@ -70,6 +77,13 @@ def make_expense(
         telegram_user_id=telegram_user_id,
         date=date,
     )
+
+
+class TestDatabaseConfiguration:
+    """Test API startup and request sessions use the same database configuration."""
+
+    def test_startup_and_requests_share_one_engine(self):
+        assert deps_engine is main_engine
 
 
 class TestFastAPIApp:

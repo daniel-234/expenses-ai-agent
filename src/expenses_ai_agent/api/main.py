@@ -2,11 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import SQLModel
 
 from expenses_ai_agent.api.routes import analytics, categories, expenses
 
-engine = create_engine("sqlite:///expenses.db")
+from .deps import engine
 
 
 @asynccontextmanager
