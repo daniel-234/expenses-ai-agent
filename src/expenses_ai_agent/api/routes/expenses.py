@@ -47,11 +47,16 @@ def delete_expense(
 @router.post("/classify", status_code=201)
 def post(
     request: ExpenseClassifyRequest,
+    user_id: int = Depends(get_user_id),
     expense_repo: ExpenseRepository = Depends(get_expense_repo),
 ) -> ExpenseCategorizationResponse:
     assistant = OpenAIAssistant()
     result = ClassificationService(
         assistant=assistant, expense_repo=expense_repo
-    ).classify(request.description)
+    ).classify(
+        request.description,
+        user_id=user_id,
+        persist=True,
+    )
 
     return result.response

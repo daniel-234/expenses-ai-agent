@@ -186,7 +186,7 @@ class TestClassificationService:
             expense_repo=mock_expense_repo,
         )
 
-        result = service.classify("Coffee $5.50", persist=True)
+        result = service.classify("Coffee $5.50", persist=True, user_id=12345)
 
         assert result.persisted is True
         mock_expense_repo.add.assert_called_once()
@@ -195,6 +195,7 @@ class TestClassificationService:
         assert added.amount == Decimal("5.50")
         assert added.currency == Currency.USD
         assert added.category == ExpenseCategory.FOOD
+        assert added.telegram_user_id == 12345
 
     def test_persist_with_category_override(self, mock_assistant, mock_expense_repo):
         service = ClassificationService(

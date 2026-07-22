@@ -164,7 +164,7 @@ class TestExpenseRoutes:
         assert response.status_code == 204
         mock_expense_repo.delete.assert_called_with(1)
 
-    def test_classify_expense(self, test_client, mock_expense_repo):
+    def test_classify_expense(self, test_client):
         """POST /expenses/classify should classify and store expense."""
         with patch(
             "expenses_ai_agent.api.routes.expenses.ClassificationService"
@@ -186,6 +186,10 @@ class TestExpenseRoutes:
                 "/api/v1/expenses/classify",
                 json={"description": "Coffee $5.50"},
                 headers={"X-User-ID": "12345"},
+            )
+
+            mock_service.classify.assert_called_once_with(
+                "Coffee $5.50", persist=True, user_id=12345
             )
 
             assert response.status_code == 201
