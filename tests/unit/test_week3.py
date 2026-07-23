@@ -186,7 +186,7 @@ class TestClassificationService:
             expense_repo=mock_expense_repo,
         )
 
-        result = service.classify("Coffee $5.50", persist=True)
+        result = service.classify("Coffee $5.50", persist=True, user_id=12345)
 
         assert result.persisted is True
         mock_expense_repo.add.assert_called_once()
@@ -195,6 +195,7 @@ class TestClassificationService:
         assert added.amount == Decimal("5.50")
         assert added.currency == Currency.USD
         assert added.category == ExpenseCategory.FOOD
+        assert added.telegram_user_id == 12345
 
     def test_persist_with_category_override(self, mock_assistant, mock_expense_repo):
         service = ClassificationService(
@@ -270,11 +271,12 @@ class TestDBExpenseRepo:
             currency=Currency.EUR,
             description="Lunch",
             category=ExpenseCategory.FOOD,
+            telegram_user_id=12345,
         )
         repo.add(expense)
         assert expense.id is not None
 
-        result = repo.get(expense.id)
+        result = repo.get(expense.id, 12345)
         assert result is not None
         assert result.amount == Decimal("42.50")
 
@@ -290,19 +292,21 @@ class TestDBExpenseRepo:
     def test_db_expense_repo_delete(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
 
-        expense = Expense(amount=Decimal("15.00"), currency=Currency.EUR)
+        expense = Expense(
+            amount=Decimal("15.00"), currency=Currency.EUR, telegram_user_id=12345
+        )
         repo.add(expense)
         assert expense.id is not None
         expense_id = expense.id
 
-        repo.delete(expense_id)
-        assert repo.get(expense_id) is None
+        repo.delete(expense_id, 12345)
+        assert repo.get(expense_id, 12345) is None
 
     def test_db_expense_repo_delete_nonexistent_raises(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
 
         with pytest.raises(ExpenseNotFoundError):
-            repo.delete(99999)
+            repo.delete(99999, telegram_user_id=12345)
 
     def test_db_expense_repo_search_by_category(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)

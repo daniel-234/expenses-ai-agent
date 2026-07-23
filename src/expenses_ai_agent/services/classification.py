@@ -24,7 +24,10 @@ class ClassificationService:
     expense_repo: ExpenseRepository | None = None
 
     def classify(
-        self, expense_description: str, persist: bool = False
+        self,
+        expense_description: str,
+        persist: bool = False,
+        user_id: int | None = None,
     ) -> ClassificationResult:
         messages = self._build_messages(expense_description)
         response = self.assistant.completion(messages)
@@ -34,7 +37,9 @@ class ClassificationService:
                 raise MissingRepositoryError(
                     "There is no repository provided to persist the expense"
                 )
-            self._persist_expense(expense_description, response)
+            self._persist_expense(
+                expense_description, response, telegram_user_id=user_id
+            )
 
         return ClassificationResult(response=response, persisted=persist)
 
