@@ -165,7 +165,7 @@ class TestExpenseRoutes:
 
     def test_get_nonexistent_expense_returns_404(self, test_client, mock_expense_repo):
         """GET /expenses/{id} should return 404 if not found."""
-        mock_expense_repo.get.side_effect = ExpenseNotFoundError(999)
+        mock_expense_repo.get.return_value = None
 
         response = test_client.get("/api/v1/expenses/999")
 
@@ -176,7 +176,13 @@ class TestExpenseRoutes:
         response = test_client.delete("/api/v1/expenses/1")
 
         assert response.status_code == 204
-        mock_expense_repo.delete.assert_called_with(1)
+        mock_expense_repo.delete.assert_called_with(1, 12345)
+
+    def test_delete_not_found(self, test_client, mock_expense_repo):
+        """DELETE /expenses/{id} should return 404 if not found."""
+        mock_expense_repo.delete.side_effect = ExpenseNotFoundError(999)
+        response = test_client.delete("/api/v1/expenses/999")
+        assert response.status_code == 404
 
     def test_classify_expense(self, test_client):
         """POST /expenses/classify should classify and store expense."""
@@ -247,6 +253,28 @@ class TestAnalyticsRoutes:
         assert "monthly_totals" in data
         assert data["category_totals"]["Food"] == "100.00"
         assert data["monthly_totals"]["2024-01"] == "150.00"
+
+
+class TestInMemoryExpenseRepositoryCrossUser:
+    """Test that delete/get cannot affect an expense owned by another user."""
+
+    def test_get_delete_do_not_affect_expense_owned_by_another_user(self):
+        repo = InMemoryExpenseRepository()
+
+        expense = repo.add(
+            make_expense(
+                amount=Decimal("30"), date=datetime(2026, 6, 20), telegram_user_id=40000
+            )
+        )
+        expense_id = expense.id
+        assert expense_id is not None
+
+        assert repo.get(expense_id, 12345) is None
+
+        with pytest.raises(ExpenseNotFoundError):
+            repo.delete(expense_id, 12345)
+
+        assert repo.get(expense_id, 40000) == expense
 
 
 class TestInMemoryExpenseRepositoryTotals:

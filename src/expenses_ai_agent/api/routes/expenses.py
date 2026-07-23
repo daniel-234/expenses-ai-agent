@@ -29,19 +29,26 @@ def list_expenses(
 
 @router.get("/{expense_id}")
 def get_expense_by_id(
-    expense_id: int, expense_repo: ExpenseRepository = Depends(get_expense_repo)
+    expense_id: int,
+    user_id: int = Depends(get_user_id),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
 ) -> ExpenseResponse:
-    try:
-        return ExpenseResponse.model_validate(expense_repo.get(expense_id))
-    except ExpenseNotFoundError:
+    expense = expense_repo.get(expense_id, user_id)
+    if expense is None:
         raise HTTPException(status_code=404, detail="Item not found.")
+    return ExpenseResponse.model_validate(expense)
 
 
 @router.delete("/{expense_id}", status_code=204)
 def delete_expense(
-    expense_id: int, expense_repo: ExpenseRepository = Depends(get_expense_repo)
+    expense_id: int,
+    user_id: int = Depends(get_user_id),
+    expense_repo: ExpenseRepository = Depends(get_expense_repo),
 ) -> None:
-    expense_repo.delete(expense_id)
+    try:
+        expense_repo.delete(expense_id, user_id)
+    except ExpenseNotFoundError:
+        raise HTTPException(status_code=404, detail="Item not found")
 
 
 @router.post("/classify", status_code=201)
