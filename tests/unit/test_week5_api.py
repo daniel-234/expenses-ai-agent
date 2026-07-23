@@ -147,6 +147,24 @@ class TestExpenseRoutes:
         assert "items" in data
         assert "total" in data
 
+    def test_total_whole_number_in_list_expenses(self, test_client, mock_expense_repo):
+        """GET /expenses/ should give total spent for returned list."""
+        response = test_client.get("/api/v1/expenses/")
+        data = response.json()
+        assert data["total"] == 3000
+
+    def test_total_fractional_number_in_list_expenses(
+        self, test_client, mock_expense_repo
+    ):
+        """GET /expenses/ handles fractional amount for returned list of expenses."""
+        mock_expense_repo.list_by_user.return_value = [
+            make_expense(amount=Decimal("12.50"), date=datetime(2026, 6, 20)),
+            make_expense(amount=Decimal("5.25"), date=datetime(2026, 5, 20)),
+        ]
+        response = test_client.get("/api/v1/expenses/")
+        data = response.json()
+        assert data["total"] == 1775
+
     def test_list_expenses_with_user_header(self, test_client, mock_expense_repo):
         """List should filter by X-User-ID header."""
         response = test_client.get("/api/v1/expenses/", headers={"X-User-ID": "12345"})

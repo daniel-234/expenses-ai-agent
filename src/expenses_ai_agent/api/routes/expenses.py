@@ -1,3 +1,5 @@
+from decimal import ROUND_DOWN, Decimal
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from expenses_ai_agent.api.deps import get_expense_repo, get_user_id
@@ -21,9 +23,13 @@ def list_expenses(
     expense_repo: ExpenseRepository = Depends(get_expense_repo),
 ) -> ExpenseListResponse:
     expenses_list = expense_repo.list_by_user(user_id)
+    total = sum(
+        int(e.amount.scaleb(2).quantize(Decimal("1"), rounding=ROUND_DOWN))
+        for e in expenses_list
+    )
     return ExpenseListResponse(
         items=[ExpenseResponse.model_validate(expense) for expense in expenses_list],
-        total=len(expenses_list),
+        total=total,
     )
 
 
