@@ -8,6 +8,8 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from .exceptions import ExpenseNotFoundError
 from .models import Currency, Expense, ExpenseCategory, UserPreference
 
+UNCATEGORIZED = "Uncategorized"
+
 
 class ExpenseRepository(ABC):
     """Abstract interface for expense data access."""
@@ -117,7 +119,7 @@ class InMemoryExpenseRepository(ExpenseRepository):
         category_totals = defaultdict(Decimal)
         for expense in user_expenses:
             category = (
-                "Uncategorized" if expense.category is None else str(expense.category)
+                UNCATEGORIZED if expense.category is None else str(expense.category)
             )
             category_totals[category] += expense.amount
         return dict(category_totals)
@@ -198,7 +200,7 @@ class DBExpenseRepo(ExpenseRepository):
         category_totals = defaultdict(Decimal)
         for expense in user_expenses:
             category = (
-                "Uncategorized" if expense.category is None else str(expense.category)
+                UNCATEGORIZED if expense.category is None else str(expense.category)
             )
             category_totals[category] += expense.amount
         return dict(category_totals)
