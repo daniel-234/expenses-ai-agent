@@ -154,6 +154,19 @@ class TestExpenseRoutes:
         data = response.json()
         assert data["total"] == 1775
 
+    def test_total_sub_cent_number_in_list_expenses(
+        self, test_client, mock_expense_repo
+    ):
+        """GET /expenses/ total rounds once at the end, not per expense."""
+        mock_expense_repo.list_by_user.return_value = [
+            make_expense(amount=Decimal("0.005"), date=datetime(2026, 6, 20)),
+            make_expense(amount=Decimal("0.005"), date=datetime(2026, 5, 20)),
+        ]
+        response = test_client.get("/api/v1/expenses/")
+        data = response.json()
+        # 0.005 + 0.005 = 0.01 → 1 cent rounding at the end; would be 0 if rounded per-expense
+        assert data["total"] == 1
+
     def test_list_expenses_with_user_header(self, test_client, mock_expense_repo):
         """List should filter by X-User-ID header."""
         response = test_client.get("/api/v1/expenses/", headers={"X-User-ID": "12345"})
