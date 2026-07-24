@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -105,27 +106,21 @@ class InMemoryExpenseRepository(ExpenseRepository):
 
     def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
-        monthly_totals = {}
+        monthly_totals = defaultdict(Decimal)
         for expense in user_expenses:
             date = expense.date.strftime("%Y-%m")
-            if date not in monthly_totals.keys():
-                monthly_totals[date] = expense.amount
-            else:
-                monthly_totals[date] += expense.amount
-        return monthly_totals
+            monthly_totals[date] += expense.amount
+        return dict(monthly_totals)
 
     def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
-        category_totals = {}
+        category_totals = defaultdict(Decimal)
         for expense in user_expenses:
             category = (
                 "Uncategorized" if expense.category is None else str(expense.category)
             )
-            if category not in category_totals.keys():
-                category_totals[category] = expense.amount
-            else:
-                category_totals[category] += expense.amount
-        return category_totals
+            category_totals[category] += expense.amount
+        return dict(category_totals)
 
 
 class DBExpenseRepo(ExpenseRepository):
@@ -192,27 +187,21 @@ class DBExpenseRepo(ExpenseRepository):
 
     def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
-        monthly_totals = {}
+        monthly_totals = defaultdict(Decimal)
         for expense in user_expenses:
             date = expense.date.strftime("%Y-%m")
-            if date not in monthly_totals.keys():
-                monthly_totals[date] = expense.amount
-            else:
-                monthly_totals[date] += expense.amount
-        return monthly_totals
+            monthly_totals[date] += expense.amount
+        return dict(monthly_totals)
 
     def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
-        category_totals = {}
+        category_totals = defaultdict(Decimal)
         for expense in user_expenses:
             category = (
                 "Uncategorized" if expense.category is None else str(expense.category)
             )
-            if category not in category_totals.keys():
-                category_totals[category] = expense.amount
-            else:
-                category_totals[category] += expense.amount
-        return category_totals
+            category_totals[category] += expense.amount
+        return dict(category_totals)
 
 
 class DBUserPreferenceRepo:
