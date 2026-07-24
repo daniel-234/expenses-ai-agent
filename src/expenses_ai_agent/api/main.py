@@ -5,14 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from expenses_ai_agent.api.routes import analytics, categories, expenses
-
-from .deps import engine
+from expenses_ai_agent.storage.database import get_engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle handler."""
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.create_all(get_engine())
     yield
 
 
