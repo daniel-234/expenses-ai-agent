@@ -203,6 +203,7 @@ class TestInMemoryExpenseRepository:
             amount=Decimal("42.50"),
             currency=Currency.EUR,
             description="Test expense",
+            telegram_user_id=12345,
         )
 
     def test_add_expense_assigns_id(self, repo, sample_expense):
@@ -218,14 +219,14 @@ class TestInMemoryExpenseRepository:
         """Should retrieve expense by ID."""
         repo.add(sample_expense)
 
-        result = repo.get(sample_expense.id)
+        result = repo.get(sample_expense.id, sample_expense.telegram_user_id)
 
         assert result is not None
         assert result.amount == Decimal("42.50")
 
     def test_get_nonexistent_returns_none(self, repo):
         """Getting a non-existent expense should return None."""
-        result = repo.get(999)
+        result = repo.get(999, 2222)
         assert result is None
 
     def test_list_all_expenses(self, repo):
@@ -246,16 +247,14 @@ class TestInMemoryExpenseRepository:
     def test_delete_expense(self, repo, sample_expense):
         """Should be able to delete an expense."""
         repo.add(sample_expense)
-        expense_id = sample_expense.id
+        repo.delete(sample_expense.id, sample_expense.telegram_user_id)
 
-        repo.delete(expense_id)
-
-        assert repo.get(expense_id) is None
+        assert repo.get(sample_expense.id, sample_expense.telegram_user_id) is None
 
     def test_delete_nonexistent_raises(self, repo):
         """Deleting a non-existent expense should raise ExpenseNotFoundError."""
         with pytest.raises(ExpenseNotFoundError):
-            repo.delete(999)
+            repo.delete(999, 2222)
 
     def test_search_by_category(self, repo):
         """Should be able to search expenses by category."""

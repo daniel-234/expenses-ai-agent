@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from .exceptions import ExpenseNotFoundError
 from .models import Currency, Expense, ExpenseCategory, UserPreference
+
+UNCATEGORIZED = "Uncategorized"
 
 
 class ExpenseRepository(ABC):
@@ -16,7 +20,7 @@ class ExpenseRepository(ABC):
         ...
 
     @abstractmethod
-    def get(self, id: int) -> Expense | None:
+    def get(self, id: int, telegram_user_id: int) -> Expense | None:
         """Get an expense by its ID."""
         ...
 
@@ -26,7 +30,7 @@ class ExpenseRepository(ABC):
         ...
 
     @abstractmethod
-    def delete(self, id: int) -> None:
+    def delete(self, id: int, telegram_user_id: int) -> None:
         """Delete an expense by its id. Raises ExpenseNotFoundError if missing."""
         ...
 
@@ -40,6 +44,12 @@ class ExpenseRepository(ABC):
 
     @abstractmethod
     def list_by_user(self, telegram_user_id: int) -> list[Expense]: ...
+
+    @abstractmethod
+    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]: ...
+
+    @abstractmethod
+    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]: ...
 
 
 class InMemoryExpenseRepository(ExpenseRepository):
@@ -55,16 +65,22 @@ class InMemoryExpenseRepository(ExpenseRepository):
         self._counter += 1
         return expense
 
-    def get(self, id: int) -> Expense | None:
-        return self._expenses.get(id)
+    def get(self, id: int, telegram_user_id: int) -> Expense | None:
+        user_expense = self._expenses.get(id)
+        if (
+            user_expense is not None
+            and user_expense.telegram_user_id == telegram_user_id
+        ):
+            return user_expense
 
     def get_all(self) -> list[Expense]:
         return list(self._expenses.values())
 
-    def delete(self, id: int) -> None:
-        deleted_expense = self._expenses.pop(id, None)
-        if deleted_expense is None:
+    def delete(self, id: int, telegram_user_id: int) -> None:
+        user_expense = self.get(id, telegram_user_id)
+        if user_expense is None:
             raise ExpenseNotFoundError(id)
+        self._expenses.pop(id)
 
     def search_by_category(self, category: ExpenseCategory) -> list[Expense]:
         results = [
@@ -89,6 +105,24 @@ class InMemoryExpenseRepository(ExpenseRepository):
             if expense.telegram_user_id == telegram_user_id
         ]
         return results
+
+    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        monthly_totals = defaultdict(Decimal)
+        for expense in user_expenses:
+            date = expense.date.strftime("%Y-%m")
+            monthly_totals[date] += expense.amount
+        return dict(monthly_totals)
+
+    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        category_totals = defaultdict(Decimal)
+        for expense in user_expenses:
+            category = (
+                UNCATEGORIZED if expense.category is None else str(expense.category)
+            )
+            category_totals[category] += expense.amount
+        return dict(category_totals)
 
 
 class DBExpenseRepo(ExpenseRepository):
@@ -120,15 +154,20 @@ class DBExpenseRepo(ExpenseRepository):
         self.session.refresh(expense)
         return expense
 
-    def get(self, id: int) -> Expense | None:
-        return self.session.get(Expense, id)
+    def get(self, id: int, telegram_user_id: int) -> Expense | None:
+        statement = (
+            select(Expense)
+            .where(Expense.telegram_user_id == telegram_user_id)
+            .where(Expense.id == id)
+        )
+        return self.session.exec(statement).first()
 
     def get_all(self) -> list[Expense]:
         statement = select(Expense)
         return list(self.session.exec(statement))
 
-    def delete(self, id: int) -> None:
-        expense = self.get(id)
+    def delete(self, id: int, telegram_user_id: int) -> None:
+        expense = self.get(id, telegram_user_id)
         if expense is None:
             raise ExpenseNotFoundError(id)
         self.session.delete(expense)
@@ -147,6 +186,24 @@ class DBExpenseRepo(ExpenseRepository):
     def list_by_user(self, telegram_user_id: int) -> list[Expense]:
         statement = select(Expense).where(Expense.telegram_user_id == telegram_user_id)
         return list(self.session.exec(statement))
+
+    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        monthly_totals = defaultdict(Decimal)
+        for expense in user_expenses:
+            date = expense.date.strftime("%Y-%m")
+            monthly_totals[date] += expense.amount
+        return dict(monthly_totals)
+
+    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+        user_expenses = self.list_by_user(telegram_user_id)
+        category_totals = defaultdict(Decimal)
+        for expense in user_expenses:
+            category = (
+                UNCATEGORIZED if expense.category is None else str(expense.category)
+            )
+            category_totals[category] += expense.amount
+        return dict(category_totals)
 
 
 class DBUserPreferenceRepo:
