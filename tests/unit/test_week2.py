@@ -184,11 +184,7 @@ class TestCurrencyConversion:
 
     def test_convert_currency_returns_decimal(self, monkeypatch, tmp_path):
         """Currency conversion should return a Decimal value."""
-        monkeypatch.setenv("EXCHANGE_RATE_API_KEY", "test-key")
-        monkeypatch.setenv("OPENAI_API_KEY", "...")
-        monkeypatch.setenv("DATABASE_URL", "...")
-        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "...")
-        monkeypatch.setenv("DEVELOPER_CHAT_ID", "...")
+
         monkeypatch.chdir(tmp_path)
         with (
             patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
@@ -213,11 +209,6 @@ class TestCurrencyConversion:
 
     def test_convert_currency_applies_rate(self, monkeypatch, tmp_path):
         """Conversion should apply the exchange rate correctly."""
-        monkeypatch.setenv("EXCHANGE_RATE_API_KEY", "test-key")
-        monkeypatch.setenv("OPENAI_API_KEY", "...")
-        monkeypatch.setenv("DATABASE_URL", "...")
-        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "...")
-        monkeypatch.setenv("DEVELOPER_CHAT_ID", "...")
         monkeypatch.chdir(tmp_path)
         with (
             patch("expenses_ai_agent.utils.currency.requests.get") as mock_get,
