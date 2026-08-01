@@ -55,6 +55,23 @@ def mock_classification_response():
     )
 
 
+def make_expense(
+    amount: Decimal,
+    date: datetime,
+    currency: Currency = Currency.EUR,
+    category: ExpenseCategory | None = ExpenseCategory.TRANSPORT,
+    telegram_user_id: int = 12345,
+) -> Expense:
+    """Factory function to create a expense entry."""
+    return Expense(
+        amount=amount,
+        currency=currency,
+        category=category,
+        telegram_user_id=telegram_user_id,
+        date=date,
+    )
+
+
 class TestClassificationPrompt:
     """Tests for the system prompt."""
 
@@ -445,6 +462,37 @@ class TestDBExpenseRepo:
             repo = DBExpenseRepo(db_url=db_url)
             repo.close()
         MockSession.return_value.close.assert_called_once()
+
+
+class TestDBExpenseRepoTotals:
+    """Test the two aggregation methods on the DB."""
+
+    def test_monthly_totals_sum_correctly_per_month(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 7, 5)))
+
+        monthly_totals = repo.get_monthly_totals(12345)
+        assert monthly_totals == {"2026-06": Decimal("60"), "2026-07": Decimal("30")}
+
+    def test_category_totals_sum_correctly_per_category(self, db_session):
+        repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
+
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
+        repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 7, 5)))
+        repo.add(
+            make_expense(
+                amount=Decimal("15"),
+                date=datetime(2026, 7, 5),
+                category=ExpenseCategory.FOOD,
+            )
+        )
+
+        category_totals = repo.get_category_totals(12345)
+        assert category_totals == {"Transport": Decimal("90"), "Food": Decimal("15")}
 
 
 class TestInMemoryExpenseRepo:
