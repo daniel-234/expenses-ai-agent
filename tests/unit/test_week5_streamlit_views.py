@@ -143,6 +143,23 @@ class TestExpensesView:
         assert len(at.error) == 1
         assert "Cannot connect" in at.error[0].value
 
+    def test_shows_error_on_http_status_error(self):
+        at = _run("""
+            from unittest.mock import MagicMock
+            from httpx import HTTPStatusError, Response, Request
+            from expenses_ai_agent.streamlit.views.expenses import render
+            client = MagicMock()
+            response = MagicMock(spec=Response)
+            response.status_code = 500
+            client.get_expenses.side_effect = HTTPStatusError(
+                "server error", request=MagicMock(spec=Request), response=response
+            )
+            render(client, user_id=12345)
+        """)
+        assert not at.exception
+        assert len(at.error) == 1
+        assert "500" in at.error[0].value
+
 
 class TestAddExpenseView:
     def test_renders_header_and_form(self):
@@ -201,6 +218,25 @@ class TestAddExpenseView:
         assert not at.exception
         assert len(at.error) == 1
         assert "Cannot connect" in at.error[0].value
+
+    def test_shows_error_on_http_status_error(self):
+        at = _run("""
+            from unittest.mock import MagicMock
+            from httpx import HTTPStatusError, Response, Request
+            from expenses_ai_agent.streamlit.views.add_expense import render
+            client = MagicMock()
+            response = MagicMock(spec=Response)
+            response.status_code = 500
+            client.classify_expense.side_effect = HTTPStatusError(
+                "server error", request=MagicMock(spec=Request), response=response
+            )
+            render(client, user_id=12345)
+        """)
+        at.text_input[0].input("Coffee at Starbucks")
+        at.button[0].click().run()
+        assert not at.exception
+        assert len(at.error) == 1
+        assert "500" in at.error[0].value
 
 
 class TestStreamlitApp:
