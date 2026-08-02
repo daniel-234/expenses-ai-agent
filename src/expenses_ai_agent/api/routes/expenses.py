@@ -24,7 +24,7 @@ def list_expenses(
 ) -> ExpenseListResponse:
     expenses_list = expense_repo.list_by_user(user_id)
     total_amount = sum((e.amount for e in expenses_list), Decimal(0))
-    total = int(total_amount.scaleb(2).quantize(Decimal("1"), rounding=ROUND_DOWN))
+    total = total_amount.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
     return ExpenseListResponse(
         items=[ExpenseResponse.model_validate(expense) for expense in expenses_list],
         total=total,

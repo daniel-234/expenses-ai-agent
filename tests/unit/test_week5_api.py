@@ -140,7 +140,7 @@ class TestExpenseRoutes:
         """GET /expenses/ should give total spent for returned list."""
         response = test_client.get("/api/v1/expenses/")
         data = response.json()
-        assert data["total"] == 3000
+        assert data["total"] == "30.00"
 
     def test_total_fractional_number_in_list_expenses(
         self, test_client, mock_expense_repo
@@ -152,7 +152,7 @@ class TestExpenseRoutes:
         ]
         response = test_client.get("/api/v1/expenses/")
         data = response.json()
-        assert data["total"] == 1775
+        assert data["total"] == "17.75"
 
     def test_total_sub_cent_number_in_list_expenses(
         self, test_client, mock_expense_repo
@@ -165,7 +165,7 @@ class TestExpenseRoutes:
         response = test_client.get("/api/v1/expenses/")
         data = response.json()
         # 0.005 + 0.005 = 0.01 → 1 cent rounding at the end; would be 0 if rounded per-expense
-        assert data["total"] == 1
+        assert data["total"] == "0.01"
 
     def test_list_expenses_with_user_header(self, test_client, mock_expense_repo):
         """List should filter by X-User-ID header."""
