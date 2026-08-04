@@ -2,7 +2,7 @@ import plotly.express as px
 import streamlit as st
 
 from ..api_client import ExpenseAPIClient
-from ._errors import handle_api_errors
+from .errors import handle_api_errors
 
 
 def render(api_client: ExpenseAPIClient, user_id: int) -> None:
