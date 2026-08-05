@@ -24,6 +24,8 @@ from expenses_ai_agent.storage.repo import (
     InMemoryExpenseRepository,
 )
 
+TEST_USER_ID = 12345
+
 
 @pytest.fixture
 def db_engine():
@@ -60,7 +62,7 @@ def make_expense(
     date: datetime,
     currency: Currency = Currency.EUR,
     category: ExpenseCategory | None = ExpenseCategory.TRANSPORT,
-    telegram_user_id: int = 12345,
+    telegram_user_id: int = TEST_USER_ID,
 ) -> Expense:
     """Factory function to create a expense entry."""
     return Expense(
@@ -203,7 +205,7 @@ class TestClassificationService:
             expense_repo=mock_expense_repo,
         )
 
-        result = service.classify("Coffee $5.50", persist=True, user_id=12345)
+        result = service.classify("Coffee $5.50", persist=True, user_id=TEST_USER_ID)
 
         assert result.persisted is True
         mock_expense_repo.add.assert_called_once()
@@ -212,7 +214,7 @@ class TestClassificationService:
         assert added.amount == Decimal("5.50")
         assert added.currency == Currency.USD
         assert added.category == ExpenseCategory.FOOD
-        assert added.telegram_user_id == 12345
+        assert added.telegram_user_id == TEST_USER_ID
 
     def test_persist_with_category_override(self, mock_assistant, mock_expense_repo):
         service = ClassificationService(
@@ -288,12 +290,12 @@ class TestDBExpenseRepo:
             currency=Currency.EUR,
             description="Lunch",
             category=ExpenseCategory.FOOD,
-            telegram_user_id=12345,
+            telegram_user_id=TEST_USER_ID,
         )
         repo.add(expense)
         assert expense.id is not None
 
-        result = repo.get(expense.id, 12345)
+        result = repo.get(expense.id, TEST_USER_ID)
         assert result is not None
         assert result.amount == Decimal("42.50")
 
@@ -310,20 +312,22 @@ class TestDBExpenseRepo:
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
 
         expense = Expense(
-            amount=Decimal("15.00"), currency=Currency.EUR, telegram_user_id=12345
+            amount=Decimal("15.00"),
+            currency=Currency.EUR,
+            telegram_user_id=TEST_USER_ID,
         )
         repo.add(expense)
         assert expense.id is not None
         expense_id = expense.id
 
-        repo.delete(expense_id, 12345)
-        assert repo.get(expense_id, 12345) is None
+        repo.delete(expense_id, TEST_USER_ID)
+        assert repo.get(expense_id, TEST_USER_ID) is None
 
     def test_db_expense_repo_delete_nonexistent_raises(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
 
         with pytest.raises(ExpenseNotFoundError):
-            repo.delete(99999, telegram_user_id=12345)
+            repo.delete(99999, telegram_user_id=TEST_USER_ID)
 
     def test_db_expense_repo_search_by_category(self, db_session):
         repo = DBExpenseRepo(db_url="sqlite:///:memory:", session=db_session)
@@ -474,7 +478,7 @@ class TestDBExpenseRepoTotals:
         repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
         repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 7, 5)))
 
-        monthly_totals = repo.get_monthly_totals(12345)
+        monthly_totals = repo.get_monthly_totals(TEST_USER_ID)
         assert monthly_totals == {"2026-06": Decimal("60"), "2026-07": Decimal("30")}
 
     def test_category_totals_sum_correctly_per_category(self, db_session):
@@ -491,7 +495,7 @@ class TestDBExpenseRepoTotals:
             )
         )
 
-        category_totals = repo.get_category_totals(12345)
+        category_totals = repo.get_category_totals(TEST_USER_ID)
         assert category_totals == {"Transport": Decimal("90"), "Food": Decimal("15")}
 
 
