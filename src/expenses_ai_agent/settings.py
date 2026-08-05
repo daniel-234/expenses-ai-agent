@@ -9,3 +9,9 @@ class Settings(BaseSettings):
     developer_chat_id: str
 
     model_config = SettingsConfigDict(env_file=".env")
+
+
+class StreamlitSettings(BaseSettings):
+    api_base_url: str = "http://localhost:8000/api/v1"
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")

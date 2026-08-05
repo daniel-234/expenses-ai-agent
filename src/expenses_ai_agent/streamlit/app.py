@@ -1,5 +1,6 @@
 import streamlit as st
 
+from expenses_ai_agent.settings import StreamlitSettings
 from expenses_ai_agent.streamlit.api_client import ExpenseAPIClient
 from expenses_ai_agent.streamlit.views import add_expense, dashboard, expenses
 
@@ -7,7 +8,8 @@ from expenses_ai_agent.streamlit.views import add_expense, dashboard, expenses
 def main():
     st.set_page_config(page_title="Expense Tracker", layout="wide")
 
-    client = ExpenseAPIClient(base_url="http://localhost:8000/api/v1")
+    streamlit_settings = StreamlitSettings.model_validate({})
+    client = ExpenseAPIClient(base_url=streamlit_settings.api_base_url)
 
     with st.sidebar:
         st.title("Expense Tracker")
