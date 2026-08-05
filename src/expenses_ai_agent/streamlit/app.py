@@ -1,25 +1,33 @@
 import streamlit as st
 
+from expenses_ai_agent.settings import StreamlitSettings
 from expenses_ai_agent.streamlit.api_client import ExpenseAPIClient
 from expenses_ai_agent.streamlit.views import add_expense, dashboard, expenses
 
-st.set_page_config(page_title="Expense Tracker", layout="wide")
 
-client = ExpenseAPIClient(base_url="http://localhost:8000/api/v1")
+def main():
+    st.set_page_config(page_title="Expense Tracker", layout="wide")
 
-with st.sidebar:
-    st.title("Expense Tracker")
-    user_id_input = st.text_input("User ID", value="12345", key="sidebar_user_id")
-    user_id = int(user_id_input) if user_id_input.strip().isdigit() else None
-    page = st.radio("Navigate", ["Dashboard", "Expenses", "Add Expense"])
+    streamlit_settings = StreamlitSettings.model_validate({})
+    client = ExpenseAPIClient(base_url=streamlit_settings.api_base_url)
 
-if user_id is None:
-    st.warning("Enter a valid numeric user ID")
-    st.stop()
+    with st.sidebar:
+        st.title("Expense Tracker")
+        user_id_input = st.text_input("User ID", value="12345", key="sidebar_user_id")
+        user_id = int(user_id_input) if user_id_input.strip().isdigit() else None
+        page = st.radio("Navigate", ["Dashboard", "Expenses", "Add Expense"])
 
-if page == "Dashboard":
-    dashboard.render(client, user_id)
-elif page == "Expenses":
-    expenses.render(client, user_id)
-elif page == "Add Expense":
-    add_expense.render(client, user_id)
+    if user_id is None:
+        st.warning("Enter a valid numeric user ID")
+        st.stop()
+
+    if page == "Dashboard":
+        dashboard.render(client, user_id)
+    elif page == "Expenses":
+        expenses.render(client, user_id)
+    elif page == "Add Expense":
+        add_expense.render(client, user_id)
+
+
+if __name__ == "__main__":
+    main()

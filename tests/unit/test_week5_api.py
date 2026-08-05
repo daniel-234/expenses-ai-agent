@@ -24,6 +24,8 @@ from expenses_ai_agent.storage.exceptions import ExpenseNotFoundError
 from expenses_ai_agent.storage.models import Currency, Expense, ExpenseCategory
 from expenses_ai_agent.storage.repo import ExpenseRepository, InMemoryExpenseRepository
 
+TEST_USER_ID = 12345
+
 
 @pytest.fixture
 def mock_expense_repo():
@@ -34,14 +36,14 @@ def mock_expense_repo():
             amount=Decimal("10.00"),
             currency=Currency.EUR,
             category=ExpenseCategory.FOOD,
-            telegram_user_id=12345,
+            telegram_user_id=TEST_USER_ID,
         ),
         Expense(
             id=2,
             amount=Decimal("20.00"),
             currency=Currency.USD,
             category=ExpenseCategory.FOOD,
-            telegram_user_id=12345,
+            telegram_user_id=TEST_USER_ID,
         ),
     ]
     repo.list_by_user.return_value = expenses
@@ -63,7 +65,7 @@ def make_expense(
     date: datetime,
     currency: Currency = Currency.EUR,
     category: ExpenseCategory | None = ExpenseCategory.TRANSPORT,
-    telegram_user_id: int = 12345,
+    telegram_user_id: int = TEST_USER_ID,
 ) -> Expense:
     """Factory function to create a expense entry."""
     return Expense(
@@ -140,7 +142,7 @@ class TestExpenseRoutes:
         """GET /expenses/ should give total spent for returned list."""
         response = test_client.get("/api/v1/expenses/")
         data = response.json()
-        assert data["total"] == 3000
+        assert data["total"] == "30.00"
 
     def test_total_fractional_number_in_list_expenses(
         self, test_client, mock_expense_repo
@@ -152,7 +154,7 @@ class TestExpenseRoutes:
         ]
         response = test_client.get("/api/v1/expenses/")
         data = response.json()
-        assert data["total"] == 1775
+        assert data["total"] == "17.75"
 
     def test_total_sub_cent_number_in_list_expenses(
         self, test_client, mock_expense_repo
@@ -165,11 +167,13 @@ class TestExpenseRoutes:
         response = test_client.get("/api/v1/expenses/")
         data = response.json()
         # 0.005 + 0.005 = 0.01 → 1 cent rounding at the end; would be 0 if rounded per-expense
-        assert data["total"] == 1
+        assert data["total"] == "0.01"
 
     def test_list_expenses_with_user_header(self, test_client, mock_expense_repo):
         """List should filter by X-User-ID header."""
-        response = test_client.get("/api/v1/expenses/", headers={"X-User-ID": "12345"})
+        response = test_client.get(
+            "/api/v1/expenses/", headers={"X-User-ID": str(TEST_USER_ID)}
+        )
 
         assert response.status_code == 200
         mock_expense_repo.list_by_user.assert_called()
@@ -196,7 +200,7 @@ class TestExpenseRoutes:
         response = test_client.delete("/api/v1/expenses/1")
 
         assert response.status_code == 204
-        mock_expense_repo.delete.assert_called_with(1, 12345)
+        mock_expense_repo.delete.assert_called_with(1, TEST_USER_ID)
 
     def test_delete_not_found(self, test_client, mock_expense_repo):
         """DELETE /expenses/{id} should return 404 if not found."""
@@ -225,11 +229,11 @@ class TestExpenseRoutes:
             response = test_client.post(
                 "/api/v1/expenses/classify",
                 json={"description": "Coffee $5.50"},
-                headers={"X-User-ID": "12345"},
+                headers={"X-User-ID": str(TEST_USER_ID)},
             )
 
             mock_service.classify.assert_called_once_with(
-                "Coffee $5.50", persist=True, user_id=12345
+                "Coffee $5.50", persist=True, user_id=TEST_USER_ID
             )
 
             assert response.status_code == 201
@@ -264,7 +268,7 @@ class TestAnalyticsRoutes:
         }
 
         response = test_client.get(
-            "/api/v1/analytics/summary", headers={"X-User-ID": "12345"}
+            "/api/v1/analytics/summary", headers={"X-User-ID": str(TEST_USER_ID)}
         )
 
         assert response.status_code == 200
@@ -289,10 +293,10 @@ class TestInMemoryExpenseRepositoryCrossUser:
         expense_id = expense.id
         assert expense_id is not None
 
-        assert repo.get(expense_id, 12345) is None
+        assert repo.get(expense_id, TEST_USER_ID) is None
 
         with pytest.raises(ExpenseNotFoundError):
-            repo.delete(expense_id, 12345)
+            repo.delete(expense_id, TEST_USER_ID)
 
         assert repo.get(expense_id, 40000) == expense
 
@@ -307,7 +311,7 @@ class TestInMemoryExpenseRepositoryTotals:
         repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 6, 20)))
         repo.add(make_expense(amount=Decimal("30"), date=datetime(2026, 7, 5)))
 
-        monthly_totals = repo.get_monthly_totals(12345)
+        monthly_totals = repo.get_monthly_totals(TEST_USER_ID)
         assert monthly_totals == {"2026-06": Decimal("60"), "2026-07": Decimal("30")}
 
     def test_category_totals_sum_correctly_per_category(self):
@@ -339,7 +343,7 @@ class TestInMemoryExpenseRepositoryTotals:
             )
         )
 
-        category_totals = repo.get_category_totals(12345)
+        category_totals = repo.get_category_totals(TEST_USER_ID)
         assert category_totals == {"Transport": Decimal("90"), "Food": Decimal("15")}
 
     def test_count_only_selected_user_expenses(self):
@@ -372,7 +376,7 @@ class TestInMemoryExpenseRepositoryTotals:
             )
         )
 
-        category_totals = repo.get_category_totals(12345)
+        category_totals = repo.get_category_totals(TEST_USER_ID)
         assert category_totals == {"Transport": Decimal("60"), "Food": Decimal("15")}
 
     def test_category_none_lands_in_uncategorized(self):
@@ -405,7 +409,7 @@ class TestInMemoryExpenseRepositoryTotals:
             )
         )
 
-        category_totals = repo.get_category_totals(12345)
+        category_totals = repo.get_category_totals(TEST_USER_ID)
         assert category_totals == {
             "Transport": Decimal("60"),
             "Uncategorized": Decimal("30"),

@@ -46,10 +46,14 @@ class ExpenseRepository(ABC):
     def list_by_user(self, telegram_user_id: int) -> list[Expense]: ...
 
     @abstractmethod
-    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]: ...
+    def get_monthly_totals(
+        self, telegram_user_id: int
+    ) -> defaultdict[str, Decimal]: ...
 
     @abstractmethod
-    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]: ...
+    def get_category_totals(
+        self, telegram_user_id: int
+    ) -> defaultdict[str, Decimal]: ...
 
 
 class InMemoryExpenseRepository(ExpenseRepository):
@@ -106,15 +110,15 @@ class InMemoryExpenseRepository(ExpenseRepository):
         ]
         return results
 
-    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+    def get_monthly_totals(self, telegram_user_id: int) -> defaultdict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
         monthly_totals = defaultdict(Decimal)
         for expense in user_expenses:
             date = expense.date.strftime("%Y-%m")
             monthly_totals[date] += expense.amount
-        return dict(monthly_totals)
+        return monthly_totals
 
-    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+    def get_category_totals(self, telegram_user_id: int) -> defaultdict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
         category_totals = defaultdict(Decimal)
         for expense in user_expenses:
@@ -122,7 +126,7 @@ class InMemoryExpenseRepository(ExpenseRepository):
                 UNCATEGORIZED if expense.category is None else str(expense.category)
             )
             category_totals[category] += expense.amount
-        return dict(category_totals)
+        return category_totals
 
 
 class DBExpenseRepo(ExpenseRepository):
@@ -187,15 +191,15 @@ class DBExpenseRepo(ExpenseRepository):
         statement = select(Expense).where(Expense.telegram_user_id == telegram_user_id)
         return list(self.session.exec(statement))
 
-    def get_monthly_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+    def get_monthly_totals(self, telegram_user_id: int) -> defaultdict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
         monthly_totals = defaultdict(Decimal)
         for expense in user_expenses:
             date = expense.date.strftime("%Y-%m")
             monthly_totals[date] += expense.amount
-        return dict(monthly_totals)
+        return monthly_totals
 
-    def get_category_totals(self, telegram_user_id: int) -> dict[str, Decimal]:
+    def get_category_totals(self, telegram_user_id: int) -> defaultdict[str, Decimal]:
         user_expenses = self.list_by_user(telegram_user_id)
         category_totals = defaultdict(Decimal)
         for expense in user_expenses:
@@ -203,7 +207,7 @@ class DBExpenseRepo(ExpenseRepository):
                 UNCATEGORIZED if expense.category is None else str(expense.category)
             )
             category_totals[category] += expense.amount
-        return dict(category_totals)
+        return category_totals
 
 
 class DBUserPreferenceRepo:

@@ -30,4 +30,4 @@ class ExpenseListResponse(BaseModel):
     """Paginated list of expenses."""
 
     items: list[ExpenseResponse]
-    total: int
+    total: Decimal
