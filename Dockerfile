@@ -23,7 +23,7 @@ COPY --from=builder /usr/local/lib/python3.13/site-packages \
     /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-RUN useradd --create-home --uid 501 appuser && chown appuser:appuser /app
+RUN useradd --create-home appuser && mkdir -p /app/data && chown appuser:appuser /app/data
 USER appuser
 
 EXPOSE 8000
